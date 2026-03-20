@@ -10,3 +10,8 @@ question_order INT
 );
 
 DELETE FROM template_questions;
+
+ALTER TABLE template_questions ADD COLUMN section_title TEXT;
+ALTER TABLE template_questions ADD COLUMN section_order INTEGER;
+
+SELECT * FROM template_questions;

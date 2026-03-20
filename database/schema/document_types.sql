@@ -14,4 +14,3 @@ INSERT INTO document_types (name) VALUES
 ('Report');
 
 SELECT * FROM document_types;
-

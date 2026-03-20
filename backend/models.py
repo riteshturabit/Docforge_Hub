@@ -16,6 +16,11 @@ class AnswerItem(BaseModel):
     question: str
     answer: str
 
+class GenerateSectionRequest(BaseModel):
+    document_id : str
+    section_order : int
+    answers: List[AnswerItem]
+
 class SubmitAnswersRequest(BaseModel):
     document_id: UUID
     answers: List[AnswerItem]
