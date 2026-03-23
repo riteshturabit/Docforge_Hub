@@ -8,6 +8,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+from docx import Document
 
 
 router = APIRouter()
@@ -249,40 +250,188 @@ def download_docx(document_id: str):
 
     cursor.execute(
         """
-        SELECT section_title, section_content
+        SELECT dt.name FROM documents d
+        JOIN document_templates dt ON d.template_id = dt.id
+        WHERE d.id=%s
+        """,
+        (document_id,)
+    )
+    result = cursor.fetchone()
+    if not result:
+        raise HTTPException(status_code=404, detail="Document not found")
+    title = result[0]
+
+    cursor.execute(
+        """
+        SELECT DISTINCT ON (section_order)
+            section_title, section_content, section_order
         FROM document_sections
         WHERE document_id=%s
-        ORDER BY section_order
+        ORDER BY section_order, id DESC
         """,
         (document_id,)
     )
     sections = cursor.fetchall()
 
-    doc = Document()
-    for row in sections:
-        sec_title = row[0] or "Untitled Section"
-        sec_text  = row[1] or "No content available"
-        sec_text  = sec_text.replace("###", "")
-
-        lines = sec_text.split("\n")
-        if lines and lines[0].strip().lower() == sec_title.lower():
-            lines = lines[1:]
-        sec_text = "\n".join(lines).strip()
-
-        doc.add_heading(sec_title, level=1)
-        doc.add_paragraph("")
-        for line in sec_text.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-    file_path = f"/tmp/{document_id}.docx"
-    doc.save(file_path)
-
     cursor.close()
     conn.close()
 
+    if not sections:
+        raise HTTPException(status_code=404, detail="No content found")
+
+    doc = Document()
+
+    # ── Document styles ──────────────────────────────────────
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    # Title
+    title_para = doc.add_heading(title, level=0)
+    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in title_para.runs:
+        run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x3a)
+        run.font.size = Pt(22)
+        run.font.bold = True
+
+    doc.add_paragraph("")
+
+    def clean_text(text: str) -> str:
+        text = re.sub(r'#{1,6}\s*', '', text)
+        text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
+        text = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', text)
+        text = re.sub(r'`{1,3}(.*?)`{1,3}', r'\1', text)
+        return text.strip()
+
+    def is_table_row(line: str) -> bool:
+        line = line.strip()
+        return line.startswith('|') and line.endswith('|')
+
+    def is_separator_row(line: str) -> bool:
+        return bool(re.match(r'\|[-:\s|]+\|', line.strip()))
+
+    def parse_table_rows(lines: list) -> list:
+        rows = []
+        for line in lines:
+            if is_separator_row(line):
+                continue
+            if is_table_row(line):
+                cells = [clean_text(c.strip()) for c in line.strip('|').split('|')]
+                cells = [c for c in cells if c != '']
+                if cells:
+                    rows.append(cells)
+        return rows
+
+    def add_table_to_doc(doc, rows):
+        if not rows:
+            return
+
+        col_count = max(len(r) for r in rows)
+
+        # Normalize all rows to same column count
+        normalized = []
+        for row in rows:
+            while len(row) < col_count:
+                row.append('')
+            normalized.append(row[:col_count])
+
+        table = doc.add_table(rows=len(normalized), cols=col_count)
+        table.style = 'Table Grid'
+
+        for i, row_data in enumerate(normalized):
+            row = table.rows[i]
+            for j, cell_text in enumerate(row_data):
+                cell = row.cells[j]
+                cell.text = cell_text
+
+                # Style header row
+                if i == 0:
+                    for para in cell.paragraphs:
+                        for run in para.runs:
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+                            run.font.size = Pt(10)
+
+                    # Purple background for header
+                    tc   = cell._tc
+                    tcPr = tc.get_or_add_tcPr()
+                    shd  = OxmlElement('w:shd')
+                    shd.set(qn('w:val'), 'clear')
+                    shd.set(qn('w:color'), 'auto')
+                    shd.set(qn('w:fill'), '7F77DD')
+                    tcPr.append(shd)
+                else:
+                    for para in cell.paragraphs:
+                        for run in para.runs:
+                            run.font.size = Pt(10)
+                            run.font.color.rgb = RGBColor(0x2a, 0x2a, 0x4a)
+
+                    # Alternating row background
+                    if i % 2 == 0:
+                        tc   = cell._tc
+                        tcPr = tc.get_or_add_tcPr()
+                        shd  = OxmlElement('w:shd')
+                        shd.set(qn('w:val'), 'clear')
+                        shd.set(qn('w:color'), 'auto')
+                        shd.set(qn('w:fill'), 'F5F5FF')
+                        tcPr.append(shd)
+
+        doc.add_paragraph("")
+
+    # ── Process each section ──────────────────────────────────
+    for row in sections:
+        sec_title   = row[0] or "Untitled Section"
+        sec_content = row[1] or "No content available"
+
+        # Section heading
+        heading = doc.add_heading(sec_title, level=1)
+        for run in heading.runs:
+            run.font.color.rgb = RGBColor(0x7F, 0x77, 0xDD)
+            run.font.size = Pt(14)
+
+        lines     = sec_content.split('\n')
+        i         = 0
+        table_buf = []
+
+        while i < len(lines):
+            line = lines[i]
+
+            # Detect table
+            if is_table_row(line):
+                table_buf.append(line)
+                i += 1
+                while i < len(lines) and (
+                    is_table_row(lines[i]) or is_separator_row(lines[i])
+                ):
+                    table_buf.append(lines[i])
+                    i += 1
+
+                table_rows = parse_table_rows(table_buf)
+                if table_rows:
+                    add_table_to_doc(doc, table_rows)
+                table_buf = []
+                continue
+
+            # Regular line
+            clean_line = clean_text(line)
+            if clean_line:
+                para = doc.add_paragraph(clean_line)
+                para.style = 'Normal'
+                for run in para.runs:
+                    run.font.size      = Pt(11)
+                    run.font.color.rgb = RGBColor(0x2a, 0x2a, 0x4a)
+
+            i += 1
+
+        doc.add_paragraph("")
+
+    file_name = title.lower().replace(" ", "_") + ".docx"
+    file_path = f"/tmp/{file_name}"
+    doc.save(file_path)
+
     return FileResponse(
         path=file_path,
-        filename=f"{document_id}.docx",
+        filename=file_name,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
