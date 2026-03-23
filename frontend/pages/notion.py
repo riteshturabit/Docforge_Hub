@@ -13,7 +13,6 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
 .stApp{background:#0a0a14!important;}
 [data-testid="stSidebar"]{background:#0f0f1a!important;border-right:1px solid #1e1e2e!important;}
-[data-testid="stSidebar"] *{color:#a0a0b8!important;}
 [data-testid="stSidebarNav"]{display:none;}
 .stButton>button{border-radius:8px!important;font-size:13px!important;font-weight:500!important;border:1px solid #2a2a3e!important;background:transparent!important;color:#e0e0f0!important;}
 .stButton>button:hover{background:#1e1e2e!important;border-color:#7F77DD!important;}
@@ -36,7 +35,7 @@ with st.sidebar:
             font-size:14px;font-weight:600;color:#fff;">D</div>
             <div>
                 <div style="font-size:14px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                <div style="font-size:11px;color:#4040a0;">Document Intelligence</div>
+                <div style="font-size:11px;color:#4040a0;">AI Document Generation System</div>
             </div>
         </div>
     </div>

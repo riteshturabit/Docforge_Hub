@@ -18,13 +18,10 @@ html, body, [class*="css"] {
 
 #MainMenu, footer, header { visibility: hidden; }
 
-/* ── Sidebar ── */
+/* ── Sidebar ── 0f0f1a*/
 [data-testid="stSidebar"] {
     background: #0f0f1a !important;
     border-right: 1px solid #1e1e2e !important;
-}
-[data-testid="stSidebar"] * {
-    color: #a0a0b8 !important;
 }
 [data-testid="stSidebarNav"] {
     display: none;
@@ -184,9 +181,9 @@ hr {
     background: #1e1e2e !important;
 }
 
-/* ── Page bg ── */
+/* ── Page bg ── 0a0a14 */
 .stApp {
-    background: #0a0a14 !important;
+    background: #0a0a14!important;
 }
 
 /* ── Form ── */
@@ -216,7 +213,7 @@ def sidebar():
                 font-size:14px;font-weight:600;color:#fff;">D</div>
                 <div>
                     <div style="font-size:14px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                    <div style="font-size:11px;color:#4040a0;">Document Intelligence</div>
+                    <div style="font-size:11px;color:#4040a0;">AI Document Generation System</div>
                 </div>
             </div>
         </div>
