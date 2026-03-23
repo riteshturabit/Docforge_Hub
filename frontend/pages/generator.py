@@ -52,7 +52,7 @@ label { color: #8080a0 !important; font-size: 12px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────
+# Sidebar 
 with st.sidebar:
     st.markdown("""
     <div style="padding:8px 0 24px;">
@@ -90,28 +90,30 @@ with st.sidebar:
             {current} of {total} sections · {pct}%</div>
             """, unsafe_allow_html=True)
 
-# ── Session state ─────────────────────────────────────────
+# Session state 
 defaults = {
     "step": 1, "department_id": None, "template_id": None,
     "company_id": None, "document_id": None,
     "current_section": 1, "total_sections": 0,
-    "generated_content": None, "section_name": ""
+    "generated_content": None, "section_name": "",
+    "edit_mode": False, "show_enhance": False,
+    "saved_answers": {}, "saved_generated": {}
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ── Page header ───────────────────────────────────────────
+# ── Page header 
 st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
-    Document generator</div>
+    Document Generator</div>
     <div style="font-size:13px;color:#4a4a6a;">
     Generate enterprise-grade documents using AI. Answer questions section by section.</div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Step indicator ────────────────────────────────────────
+# Step indicator 
 steps  = ["Select template", "Company info", "Q&A sections", "Preview & export"]
 colors = ["#7F77DD" if i+1 == st.session_state.step
           else "#1D9E75" if i+1 < st.session_state.step
@@ -259,8 +261,6 @@ elif st.session_state.step == 2:
             st.session_state.current_section = 1
             st.rerun()
 
-
-
 # Step — Q&A sections
 elif st.session_state.step == 3:
 
@@ -285,6 +285,9 @@ elif st.session_state.step == 3:
     Answer the questions below to generate this section.</div>
     """, unsafe_allow_html=True)
 
+    # Restore saved answers for this section
+    saved_ans = st.session_state.saved_answers.get(current_section, {})
+
     answers = []
     if questions:
         with st.form(f"qa_{current_section}"):
@@ -292,7 +295,16 @@ elif st.session_state.step == 3:
                 st.markdown(f"""
                 <div style="font-size:12px;color:#8080a0;margin-bottom:4px;">{q}</div>
                 """, unsafe_allow_html=True)
-                ans = st.text_area("", height=72, key=f"q_{current_section}_{q}", label_visibility="collapsed")
+
+                # Restore saved answer if exists
+                saved_val = saved_ans.get(q, "")
+                ans = st.text_area(
+                    "",
+                    value=saved_val,
+                    height=72,
+                    key=f"q_{current_section}_{q}",
+                    label_visibility="collapsed"
+                )
                 answers.append({"question": q, "answer": ans})
                 st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
@@ -300,76 +312,197 @@ elif st.session_state.step == 3:
             with col_back:
                 back = st.form_submit_button("← Previous", use_container_width=True)
             with col_gen:
-                generate = st.form_submit_button("Generate section →", type="primary", use_container_width=True)
+                generate = st.form_submit_button(
+                    "Generate section →",
+                    type="primary",
+                    use_container_width=True
+                )
 
-        if back and current_section > 1:
-            st.session_state.current_section  -= 1
-            st.session_state.generated_content = None
-            st.rerun()
+        if back:
+            if current_section > 1:
+                # Save current answers before going back
+                st.session_state.saved_answers[current_section] = {
+                    a["question"]: a["answer"] for a in answers
+                }
+                st.session_state.current_section -= 1
+                # Restore generated content for previous section
+                st.session_state.generated_content = \
+                    st.session_state.saved_generated.get(
+                        st.session_state.current_section
+                    )
+                st.session_state.section_name = ""
+                st.session_state.edit_mode    = False
+                st.session_state.show_enhance = False
+                st.rerun()
 
         if generate:
+            # Save answers to session state
+            st.session_state.saved_answers[current_section] = {
+                a["question"]: a["answer"] for a in answers
+            }
             with st.spinner(f"Generating {section_name}..."):
-                result = generate_section(document_id, current_section, answers)
-                st.session_state.generated_content = result.get("content", "")
-                st.session_state.section_name      = section_name
+                result  = generate_section(document_id, current_section, answers)
+                content = result.get("content", "")
+                st.session_state.generated_content              = content
+                st.session_state.section_name                   = section_name
+                st.session_state.saved_generated[current_section] = content
             st.rerun()
 
-    # Generated content preview
+    # Restore generated content when navigating back
+    if not st.session_state.generated_content:
+        saved_gen = st.session_state.saved_generated.get(current_section)
+        if saved_gen:
+            st.session_state.generated_content = saved_gen
+            st.session_state.section_name      = section_name
+            st.rerun()
+
+    # Generated content block
     if st.session_state.generated_content:
         st.markdown("---")
         st.markdown(f"""
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;
+        justify-content:space-between;margin-bottom:12px;">
             <div style="font-size:13px;font-weight:600;color:#e0e0f0;">
-            Generated — {st.session_state.section_name}</div>
-            <div style="font-size:11px;color:#1D9E75;background:rgba(29,158,117,0.12);
-            padding:3px 10px;border-radius:20px;border:1px solid rgba(29,158,117,0.2);">
+            Generated Section {st.session_state.section_name}</div>
+            <div style="font-size:11px;color:#1D9E75;
+            background:rgba(29,158,117,0.12);padding:3px 10px;
+            border-radius:20px;border:1px solid rgba(29,158,117,0.2);">
             Ready</div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-        <div style="background:#13131f;border:1px solid #1e1e2e;border-left:3px solid #7F77DD;
-        border-radius:0 12px 12px 0;padding:16px 20px;font-size:13px;
-        color:#a0a0b8;line-height:1.75;max-height:300px;overflow-y:auto;">
-        {st.session_state.generated_content.replace(chr(10), '<br>')}
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-
-        with st.expander("Enhance this section"):
-            col_a, col_b = st.columns([2, 2])
-            with col_a:
-                action = st.selectbox("Enhancement", [
-                    "longer", "shorter", "formal",
-                    "concise", "examples", "table", "clarity", "grammar"
-                ])
-            with col_b:
-                custom = st.text_input("Custom instruction (optional)")
-            if st.button("Enhance →", type="primary"):
-                with st.spinner("Enhancing..."):
-                    enhanced = enhance_section(document_id, current_section, action, custom)
-                    ec       = enhanced.get("enhanced_content", "")
-                if ec:
-                    save_enhanced_section(document_id, current_section, ec)
-                    st.session_state.generated_content = ec
-                    st.success("Section enhanced and saved!")
+        # Edit mode
+        if st.session_state.edit_mode:
+            edited = st.text_area(
+                "Edit content manually",
+                value=st.session_state.generated_content,
+                height=320,
+                key=f"edit_area_{current_section}"
+            )
+            col_save, col_cancel = st.columns(2)
+            with col_save:
+                if st.button(
+                    "Save edits",
+                    key=f"save_{current_section}",
+                    type="primary",
+                    use_container_width=True
+                ):
+                    save_enhanced_section(document_id, current_section, edited)
+                    st.session_state.generated_content                 = edited
+                    st.session_state.saved_generated[current_section]  = edited
+                    st.session_state.edit_mode                         = False
+                    st.success("Section saved!")
+                    st.rerun()
+            with col_cancel:
+                if st.button(
+                    "Cancel",
+                    key=f"cancel_{current_section}",
+                    use_container_width=True
+                ):
+                    st.session_state.edit_mode = False
                     st.rerun()
 
-        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-        col1, col2 = st.columns([3, 1])
-        with col2:
-            if current_section < total_sections:
-                if st.button("Accept & next →", type="primary", use_container_width=True):
-                    st.session_state.current_section  += 1
-                    st.session_state.generated_content = None
-                    st.rerun()
-            else:
-                if st.button("Preview document →", type="primary", use_container_width=True):
-                    st.session_state.step = 4
+        # Read mode
+        else:
+            st.markdown(f"""
+            <div style="background:#13131f;border:1px solid #1e1e2e;
+            border-left:3px solid #7F77DD;
+            border-radius:0 12px 12px 0;padding:16px 20px;
+            font-size:13px;color:#a0a0b8;line-height:1.75;
+            max-height:300px;overflow-y:auto;">
+            {st.session_state.generated_content.replace(chr(10), '<br>')}
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+            # 3 action buttons
+            col_edit, col_enhance, col_accept = st.columns(3)
+
+            with col_edit:
+                if st.button(
+                    "✏️ Edit manually",
+                    key=f"edit_{current_section}",
+                    use_container_width=True
+                ):
+                    st.session_state.edit_mode = True
                     st.rerun()
 
+            with col_enhance:
+                if st.button(
+                    "✨ Enhance",
+                    key=f"enhance_btn_{current_section}",
+                    use_container_width=True
+                ):
+                    st.session_state.show_enhance = not st.session_state.get(
+                        "show_enhance", False
+                    )
+                    st.rerun()
 
+            with col_accept:
+                if current_section < total_sections:
+                    if st.button(
+                        "Accept & next →",
+                        key=f"accept_{current_section}",
+                        type="primary",
+                        use_container_width=True
+                    ):
+                        st.session_state.current_section  += 1
+                        st.session_state.generated_content = \
+                            st.session_state.saved_generated.get(
+                                st.session_state.current_section
+                            )
+                        st.session_state.edit_mode    = False
+                        st.session_state.show_enhance = False
+                        st.rerun()
+                else:
+                    if st.button(
+                        "Preview document →",
+                        key=f"preview_{current_section}",
+                        type="primary",
+                        use_container_width=True
+                    ):
+                        st.session_state.step      = 4
+                        st.session_state.edit_mode = False
+                        st.rerun()
+
+            # Enhance panel
+            if st.session_state.get("show_enhance", False):
+                st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                with st.expander("Enhance options", expanded=True):
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        action = st.selectbox(
+                            "Enhancement type",
+                            [
+                                "longer", "shorter", "formal",
+                                "concise", "examples", "table",
+                                "clarity", "grammar"
+                            ],
+                            key=f"action_{current_section}"
+                        )
+                    with col_b:
+                        custom = st.text_input(
+                            "Custom instruction (optional)",
+                            key=f"custom_{current_section}"
+                        )
+                    if st.button(
+                        "Enhance →",
+                        key=f"do_enhance_{current_section}",
+                        type="primary"
+                    ):
+                        with st.spinner("Enhancing..."):
+                            enhanced = enhance_section(
+                                document_id, current_section, action, custom
+                            )
+                            ec = enhanced.get("enhanced_content", "")
+                        if ec:
+                            save_enhanced_section(document_id, current_section, ec)
+                            st.session_state.generated_content                = ec
+                            st.session_state.saved_generated[current_section] = ec
+                            st.session_state.show_enhance                     = False
+                            st.success("Enhanced and saved!")
+                            st.rerun()
 
 # Step 4 — Preview & Export
 elif st.session_state.step == 4:
@@ -452,3 +585,4 @@ elif st.session_state.step == 4:
             if k in st.session_state:
                 del st.session_state[k]
         st.rerun()
+
