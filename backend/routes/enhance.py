@@ -1,24 +1,75 @@
 from fastapi import APIRouter, HTTPException
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 from backend.database import get_connection
 from backend.llm import llm
 
 router = APIRouter()
 
+# ── Action descriptions ───────────────────────────────────
 ACTION_MAP = {
-    "Longer": "Make the content more detailed and comprehensive",
-    "Shorter": "Make the content shorter and to the point",
-    "Formal": "Make the tone more formal and professional",
-    "Concise": "Make the content concise without losing meaning",
-    "Examples": "Add relevant examples",
-    "Table": "Add structured table if applicable",
-    "Clarity": "Improve clarity and readability",
-    "Grammar": "Fix grammar and improve sentence structure"
+    "longer":   "Make the content more detailed and comprehensive",
+    "shorter":  "Make the content shorter and to the point",
+    "formal":   "Make the tone more formal and professional",
+    "concise":  "Make the content concise without losing meaning",
+    "examples": "Add relevant real-world examples",
+    "table":    "Restructure content into a well-formatted table using pipe format",
+    "clarity":  "Improve clarity and readability",
+    "grammar":  "Fix grammar and improve sentence structure"
 }
+
+# ── Prompt template for single section ───────────────────
+ENHANCE_SECTION_PROMPT = PromptTemplate(
+    input_variables=["section_title", "content", "instruction", "custom_instruction"],
+    template="""
+You are an expert enterprise document editor.
+
+Section: {section_title}
+
+Current Content:
+{content}
+
+Enhancement Instruction: {instruction}
+{custom_instruction}
+
+Rules:
+- Keep the core meaning intact
+- Improve quality only
+- Do not add fake policies or assumptions
+- Do not use markdown symbols like ##, **, __
+- Write in clean plain paragraphs
+- If using a table use proper pipe format like | Col1 | Col2 |
+
+Return only the improved content:
+"""
+)
+
+# ── Prompt template for full document ────────────────────
+ENHANCE_DOCUMENT_PROMPT = PromptTemplate(
+    input_variables=["instruction", "custom_instruction", "full_text"],
+    template="""
+You are an expert enterprise document editor.
+
+Enhancement Instruction: {instruction}
+{custom_instruction}
+
+Full Document:
+{full_text}
+
+Rules:
+- Keep core meaning intact
+- Improve quality consistently across all sections
+- Do not use markdown symbols
+- Return only the improved document
+
+Return improved document:
+"""
+)
 
 
 @router.post("/enhance_section")
 def enhance_section(data: dict):
-    conn = get_connection()
+    conn   = get_connection()
     cursor = conn.cursor()
 
     document_id        = data.get("document_id")
@@ -29,8 +80,9 @@ def enhance_section(data: dict):
     if not document_id:
         raise HTTPException(status_code=400, detail="document_id required")
 
-    instruction = ACTION_MAP.get(action, "")
+    instruction = ACTION_MAP.get(action, "Improve the content quality")
 
+    # ── Single section ────────────────────────────────────
     if section_order is not None:
         cursor.execute(
             """
@@ -48,29 +100,37 @@ def enhance_section(data: dict):
 
         section_title, content = section
 
-        prompt = f"""
-You are an expert AI document editor.
+        chain = LLMChain(
+            llm=llm,
+            prompt=ENHANCE_SECTION_PROMPT,
+            verbose=False
+        )
 
-Section: {section_title}
-Content: {content}
+        try:
+            response = chain.invoke({
+                "section_title":      section_title,
+                "content":            content,
+                "instruction":        instruction,
+                "custom_instruction": custom_instruction
+            })
+            enhanced = response.get("text", "")
+        except Exception as e:
+            cursor.close()
+            conn.close()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Enhancement failed: {str(e)}"
+            )
 
-Instruction: {instruction}
-{custom_instruction}
-
-Rules:
-- Keep meaning same
-- Improve quality only
-- Do not add fake policies
-- Return improved content only.
-"""
-        response = llm.invoke(prompt)
         cursor.close()
         conn.close()
+
         return {
-            "section": section_title,
-            "enhanced_content": response.content
+            "section":          section_title,
+            "enhanced_content": enhanced
         }
 
+    # ── Full document ─────────────────────────────────────
     else:
         cursor.execute(
             """
@@ -87,28 +147,40 @@ Rules:
             conn.close()
             raise HTTPException(status_code=404, detail="Document empty")
 
-        full_text = "\n\n".join([f"{s[0]}:\n{s[1]}" for s in sections])
+        full_text = "\n\n".join(
+            [f"{s[0]}:\n{s[1]}" for s in sections]
+        )
 
-        prompt = f"""
-You are an expert document editor.
-Improve the full document.
+        chain = LLMChain(
+            llm=llm,
+            prompt=ENHANCE_DOCUMENT_PROMPT,
+            verbose=False
+        )
 
-Instruction: {instruction}
-{custom_instruction}
+        try:
+            response = chain.invoke({
+                "instruction":        instruction,
+                "custom_instruction": custom_instruction,
+                "full_text":          full_text
+            })
+            enhanced = response.get("text", "")
+        except Exception as e:
+            cursor.close()
+            conn.close()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Enhancement failed: {str(e)}"
+            )
 
-Document: {full_text}
-
-Return only improved document.
-"""
-        response = llm.invoke(prompt)
         cursor.close()
         conn.close()
-        return {"enhanced_document": response.content}
+
+        return {"enhanced_document": enhanced}
 
 
 @router.post("/save_enhanced_section")
 def save_enhanced_section(data: dict):
-    conn = get_connection()
+    conn   = get_connection()
     cursor = conn.cursor()
 
     document_id   = data.get("document_id")
@@ -126,4 +198,5 @@ def save_enhanced_section(data: dict):
     conn.commit()
     cursor.close()
     conn.close()
+
     return {"message": "Section updated successfully"}

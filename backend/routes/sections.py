@@ -1,51 +1,85 @@
+import re
 from fastapi import APIRouter, HTTPException
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 from backend.database import get_connection
 from backend.models import GenerateSectionRequest
-from backend.llm import llm
-import re
+from backend.llm import llm, get_memory, save_to_memory
 
 router = APIRouter()
 
 
+# ── Clean markdown from LLM output ───────────────────────
 def clean_content(text: str) -> str:
-    # Remove markdown headings
     text = re.sub(r'#{1,6}\s*', '', text)
-    # Remove bold/italic asterisks
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
-    # Remove underscore bold/italic
     text = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', text)
-    # Remove markdown table separators like |---|---|
     text = re.sub(r'\|[-:\s|]+\|', '', text)
-    # Clean table rows — keep content, remove pipes
     lines = text.split('\n')
-    cleaned_lines = []
+    cleaned = []
     for line in lines:
         if line.strip().startswith('|') and line.strip().endswith('|'):
-            # It's a table row — extract cell content
-            cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+            cells = [c.strip() for c in line.strip().strip('|').split('|')]
             cells = [c for c in cells if c]
-            cleaned_lines.append('  |  '.join(cells))
+            cleaned.append('  |  '.join(cells))
         else:
-            cleaned_lines.append(line)
-    text = '\n'.join(cleaned_lines)
-    # Remove bullet points
+            cleaned.append(line)
+    text = '\n'.join(cleaned)
     text = re.sub(r'^\s*[-*•]\s+', '', text, flags=re.MULTILINE)
-    # Remove extra blank lines
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 
+# ── Prompt template for section generation ────────────────
+SECTION_PROMPT = PromptTemplate(
+    input_variables=[
+        "section_title",
+        "answers_text",
+        "chat_history"
+    ],
+    template="""
+You are an enterprise SaaS documentation assistant.
+Generate professional content for the following document section.
+
+Previous sections context:
+{chat_history}
+
+Current Section: {section_title}
+
+User Answers:
+{answers_text}
+
+Guidelines:
+- Keep it professional and enterprise-grade
+- Strictly use the user answers as the basis
+- Expand only for clarity and professionalism
+- Be consistent with previously generated sections
+- Do not add assumptions or new policies
+- Do not use markdown formatting like ##, **, __ or bullet symbols
+- Write in clean plain paragraphs only
+- If using a table use proper pipe format like | Col1 | Col2 |
+
+Generate the section content now:
+"""
+)
+
+
 @router.post("/generate_section")
 def generate_section(data: GenerateSectionRequest):
-    conn = get_connection()
+    conn   = get_connection()
     cursor = conn.cursor()
 
+    # Get template_id
     cursor.execute(
         "SELECT template_id FROM documents WHERE id=%s",
         (data.document_id,)
     )
-    template_id = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    if not result:
+        raise HTTPException(status_code=404, detail="Document not found")
+    template_id = result[0]
 
+    # Get section title
     cursor.execute(
         """
         SELECT section_title FROM template_sections
@@ -53,36 +87,52 @@ def generate_section(data: GenerateSectionRequest):
         """,
         (template_id, data.section_order)
     )
-    section_title = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    if not result:
+        raise HTTPException(status_code=404, detail="Section not found")
+    section_title = result[0]
 
+    # Format answers
     answers_text = "\n".join(
         [f"{a.question}: {a.answer}" for a in data.answers]
     )
 
-    prompt = f"""
-You are an enterprise SaaS documentation assistant.
-Generate professional content for the following section.
+    # ── Get memory for this document ──────────────────────
+    memory      = get_memory(data.document_id)
+    chat_history = ""
+    if memory.chat_memory.messages:
+        # Get last 2 sections from memory to keep context
+        messages     = memory.chat_memory.messages[-4:]
+        chat_history = "\n".join([m.content for m in messages])
 
-Section: {section_title}
+    # ── Build chain ───────────────────────────────────────
+    chain = LLMChain(
+        llm=llm,
+        prompt=SECTION_PROMPT,
+        verbose=False
+    )
 
-User Answers:
-{answers_text}
+    # ── Invoke chain ──────────────────────────────────────
+    try:
+        response = chain.invoke({
+            "section_title": section_title,
+            "answers_text":  answers_text,
+            "chat_history":  chat_history or "No previous sections yet."
+        })
+        content = response.get("text", "") or "No content generated"
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"LLM generation failed: {str(e)}"
+        )
 
-Guidelines:
-- Keep it professional
-- Strictly use the user's answers
-- Expand only for clarity and professionalism
-- Do not add assumptions or new policies
-- Do not use ## headings or **bold** or __underline__ markdown
-- Do not use markdown formatting like ##, **, __, or bullet symbols
-- If using a table use proper pipe format like | Col1 | Col2 |
-- Write in clean plain paragraphs only
-- Table must have a header row followed by a separator row like |---|---|
-"""
+    # Clean markdown
+    content = clean_content(content)
 
-    response = llm.invoke(prompt)
-    content = clean_content(response.content or "No content generated")
+    # ── Save to memory for next sections ──────────────────
+    save_to_memory(data.document_id, section_title, content)
 
+    # Save to DB
     cursor.execute(
         """
         DELETE FROM document_sections
@@ -90,7 +140,6 @@ Guidelines:
         """,
         (data.document_id, data.section_order)
     )
-
     cursor.execute(
         """
         INSERT INTO document_sections
