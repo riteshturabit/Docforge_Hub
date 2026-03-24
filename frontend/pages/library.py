@@ -11,20 +11,20 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
-.stApp{background:#0a0a14!important;}
+.stApp{background:#191919!important;}
 [data-testid="stSidebar"]{background:#0f0f1a!important;border-right:1px solid #1e1e2e!important;}
 [data-testid="stSidebarNav"]{display:none;}
 .stButton>button{border-radius:8px!important;font-size:13px!important;font-weight:500!important;border:1px solid #2a2a3e!important;background:transparent!important;color:#e0e0f0!important;}
 .stButton>button:hover{background:#1e1e2e!important;border-color:#7F77DD!important;}
 .stButton>button[kind="primary"]{background:#7F77DD!important;border-color:#7F77DD!important;color:#fff!important;}
-.stTextInput>div>div>input,.stSelectbox>div>div{background:#1a1a2e!important;border:1px solid #2a2a3e!important;border-radius:8px!important;color:#e0e0f0!important;font-size:13px!important;}
-[data-testid="stMetric"]{background:#1a1a2e!important;border:1px solid #2a2a3e!important;border-radius:12px!important;padding:16px 20px!important;}
+.stTextInput>div>div>input,.stSelectbox>div>div{background:#222!important;border:1px solid #2a2a3e!important;border-radius:8px!important;color:#e0e0f0!important;font-size:13px!important;}
+[data-testid="stMetric"]{background:#222!important;border:1px solid #2a2a3e!important;border-radius:12px!important;padding:16px 20px!important;}
 [data-testid="stMetricValue"]{font-size:26px!important;font-weight:600!important;color:#e0e0f0!important;}
-[data-testid="stMetricLabel"]{font-size:12px!important;color:#6060a0!important;}
+[data-testid="stMetricLabel"]{font-size:12px!important;color:#666!important;}
 hr{border-color:#1e1e2e!important;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:2px;}
-.stDownloadButton>button{border-radius:8px!important;font-size:11px!important;width:100%!important;background:#1a1a2e!important;border:1px solid #2a2a3e!important;color:#e0e0f0!important;}
+.stDownloadButton>button{border-radius:8px!important;font-size:11px!important;width:100%!important;background:#222!important;border:1px solid #2a2a3e!important;color:#e0e0f0!important;}
 .stDownloadButton>button:hover{border-color:#7F77DD!important;}
 label{color:#8080a0!important;font-size:12px!important;}
 </style>
@@ -67,7 +67,7 @@ st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     Document library</div>
-    <div style="font-size:13px;color:#4a4a6a;">
+    <div style="font-size:13px;color:#666;">
     Browse, download and publish all generated documents.</div>
 </div>
 """, unsafe_allow_html=True)
@@ -109,12 +109,12 @@ st.markdown("---")
 # Document grid
 if not documents:
     st.markdown("""
-    <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:12px;
+    <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:48px;text-align:center;">
         <div style="font-size:32px;margin-bottom:12px;">📄</div>
         <div style="font-size:15px;font-weight:500;color:#e0e0f0;margin-bottom:6px;">
         No documents found</div>
-        <div style="font-size:13px;color:#4a4a6a;">
+        <div style="font-size:13px;color:#666;">
         Go to Generator to create your first document</div>
     </div>
     """, unsafe_allow_html=True)
@@ -128,12 +128,12 @@ else:
             status_text  = "Published" if is_pub else "Draft"
 
             st.markdown(f"""
-            <div style="background:#13131f;border:1px solid #1e1e2e;
+            <div style="background:#222;border:1px solid #1e1e2e;
             border-radius:12px;padding:16px 20px;margin-bottom:4px;">
                 <div style="display:flex;justify-content:space-between;
                 align-items:flex-start;margin-bottom:10px;">
                     <div style="width:36px;height:36px;border-radius:8px;
-                    background:#1a1a2e;display:flex;align-items:center;
+                    background:#222;display:flex;align-items:center;
                     justify-content:center;font-size:16px;">📄</div>
                     <div style="font-size:11px;font-weight:500;padding:3px 10px;
                     border-radius:20px;background:{status_bg};color:{status_color};">
@@ -141,17 +141,17 @@ else:
                 </div>
                 <div style="font-size:14px;font-weight:600;color:#e0e0f0;
                 margin-bottom:4px;">{doc['title']}</div>
-                <div style="font-size:11px;color:#4a4a6a;margin-bottom:12px;">
+                <div style="font-size:11px;color:#666;margin-bottom:12px;">
                 {doc['department']} · {doc['document_type']} · {doc.get('company_name','')} · {doc['created_at'][:10]}</div>
                 <div style="display:flex;gap:6px;margin-bottom:12px;">
                     <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+                    background:#222;border:1px solid #2a2a3e;color:#8080a0;">
                     {doc['department']}</span>
                     <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+                    background:#222;border:1px solid #2a2a3e;color:#8080a0;">
                     {doc['document_type']}</span>
                     <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+                    background:#222;border:1px solid #2a2a3e;color:#8080a0;">
                     {doc.get('version','v1.0')}</span>
                 </div>
             </div>

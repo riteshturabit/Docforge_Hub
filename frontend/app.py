@@ -235,7 +235,7 @@ st.markdown("""
     <div style="font-size:28px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
         Good day, welcome back
     </div>
-    <div style="font-size:14px;color:#4a4a6a;">
+    <div style="font-size:14px;color:#666;">
         Your AI-powered document workspace. Generate, manage and publish enterprise documents.
     </div>
 </div>
@@ -260,7 +260,7 @@ st.markdown("---")
 
 # Quick actions 
 st.markdown("""
-<div style="font-size:13px;font-weight:500;color:#6060a0;
+<div style="font-size:13px;font-weight:500;color:#666;
 text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">
 Quick actions
 </div>
@@ -270,14 +270,14 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("""
-    <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:12px;
+    <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;cursor:pointer;transition:all 0.2s;">
         <div style="width:40px;height:40px;border-radius:10px;background:#1e1e35;
         display:flex;align-items:center;justify-content:center;
         font-size:18px;margin-bottom:12px;">⚡</div>
         <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         New document</div>
-        <div style="font-size:12px;color:#4a4a6a;">
+        <div style="font-size:12px;color:#666;">
         Generate from 100+ industry templates</div>
     </div>
     """, unsafe_allow_html=True)
@@ -287,14 +287,14 @@ with col1:
 
 with col2:
     st.markdown("""
-    <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:12px;
+    <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;">
         <div style="width:40px;height:40px;border-radius:10px;background:#0f1e1a;
         display:flex;align-items:center;justify-content:center;
         font-size:18px;margin-bottom:12px;">📚</div>
         <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         Document library</div>
-        <div style="font-size:12px;color:#4a4a6a;">
+        <div style="font-size:12px;color:#666;">
         Browse and download all generated docs</div>
     </div>
     """, unsafe_allow_html=True)
@@ -304,14 +304,14 @@ with col2:
 
 with col3:
     st.markdown("""
-    <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:12px;
+    <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;">
         <div style="width:40px;height:40px;border-radius:10px;background:#1e1a0a;
         display:flex;align-items:center;justify-content:center;
         font-size:18px;margin-bottom:12px;">🚀</div>
         <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         Notion publish</div>
-        <div style="font-size:12px;color:#4a4a6a;">
+        <div style="font-size:12px;color:#666;">
         {drafts} documents pending publish</div>
     </div>
     """.format(drafts=drafts), unsafe_allow_html=True)
@@ -323,7 +323,7 @@ with col3:
 if documents:
     st.markdown("---")
     st.markdown("""
-    <div style="font-size:13px;font-weight:500;color:#6060a0;
+    <div style="font-size:13px;font-weight:500;color:#666;
     text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">
     Recent documents
     </div>
@@ -336,11 +336,11 @@ if documents:
             status_color = "#1D9E75" if doc["is_published"] else "#BA7517"
             status_text = "Published" if doc["is_published"] else "Draft"
             st.markdown(f"""
-            <div style="background:#13131f;border:1px solid #1e1e2e;
+            <div style="background:#222;border:1px solid #1e1e2e;
             border-radius:12px;padding:16px;">
                 <div style="font-size:12px;font-weight:500;color:#e0e0f0;
                 margin-bottom:6px;line-height:1.4;">{doc['title']}</div>
-                <div style="font-size:11px;color:#4a4a6a;margin-bottom:10px;">
+                <div style="font-size:11px;color:#666;margin-bottom:10px;">
                 {doc['department']} · {doc['document_type']}</div>
                 <div style="display:inline-block;font-size:10px;font-weight:500;
                 padding:3px 8px;border-radius:20px;
