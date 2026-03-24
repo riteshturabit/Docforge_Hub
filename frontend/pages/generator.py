@@ -86,7 +86,7 @@ with st.sidebar:
             pct     = int((current / total) * 100)
             st.progress(current / total)
             st.markdown(f"""
-            <div style="font-size:11px;color:#4a4a6a;margin-top:4px;">
+            <div style="font-size:11px;color:#666;margin-top:4px;">
             {current} of {total} sections · {pct}%</div>
             """, unsafe_allow_html=True)
 
@@ -108,7 +108,7 @@ st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     Document Generator</div>
-    <div style="font-size:13px;color:#4a4a6a;">
+    <div style="font-size:13px;color:#666;">
     Generate enterprise-grade documents using AI. Answer questions section by section.</div>
 </div>
 """, unsafe_allow_html=True)
@@ -169,9 +169,9 @@ if st.session_state.step == 1:
     sections = get_sections(tmpl_id)
 
     st.markdown(f"""
-    <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:12px;
+    <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:16px 20px;margin:16px 0;">
-        <div style="font-size:12px;color:#6060a0;margin-bottom:10px;">
+        <div style="font-size:12px;color:rgb(211 185 185);margin-bottom:10px;">
         Template preview — {len(sections)} sections</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
     """, unsafe_allow_html=True)
@@ -179,7 +179,7 @@ if st.session_state.step == 1:
     pills_html = ""
     for s in sections:
         pills_html += f"""<span style="font-size:11px;padding:3px 10px;border-radius:20px;
-        background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">{s[0]}</span>"""
+        background:#222;border:1px solid #2a2a3e;color:#8080a0;">{s[0]}</span>"""
 
     st.markdown(pills_html + "</div></div>", unsafe_allow_html=True)
 
@@ -201,7 +201,7 @@ elif st.session_state.step == 2:
     st.markdown("""
     <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     Company information</div>
-    <div style="font-size:13px;color:#4a4a6a;margin-bottom:20px;">
+    <div style="font-size:13px;color:#666;margin-bottom:20px;">
     This context personalizes every section of your document.</div>
     """, unsafe_allow_html=True)
 
@@ -270,7 +270,7 @@ elif st.session_state.step == 3:
 
     st.progress(current_section / total_sections)
     st.markdown(f"""
-    <div style="font-size:12px;color:#6060a0;margin-bottom:16px;">
+    <div style="font-size:12px;color:#666;margin-bottom:16px;">
     Section {current_section} of {total_sections}</div>
     """, unsafe_allow_html=True)
 
@@ -278,10 +278,21 @@ elif st.session_state.step == 3:
     section_name = data.get("section", "")
     questions    = data.get("questions", [])
 
+    # Auto regenerate if questions empty
+    if not questions:
+        with st.spinner("Loading questions..."):
+            from utils.api import generate_questions
+            generate_questions(st.session_state.template_id)
+            import time
+            time.sleep(1)
+            data         = get_next_questions(document_id, current_section)
+            section_name = data.get("section", "")
+            questions    = data.get("questions", [])
+
     st.markdown(f"""
     <div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     {section_name}</div>
-    <div style="font-size:12px;color:#4a4a6a;margin-bottom:20px;">
+    <div style="font-size:12px;color:#666;margin-bottom:20px;">
     Answer the questions below to generate this section.</div>
     """, unsafe_allow_html=True)
 
@@ -405,7 +416,7 @@ elif st.session_state.step == 3:
         # Read mode
         else:
             st.markdown(f"""
-            <div style="background:#13131f;border:1px solid #1e1e2e;
+            <div style="background:#222;border:1px solid #1e1e2e;
             border-left:3px solid #7F77DD;
             border-radius:0 12px 12px 0;padding:16px 20px;
             font-size:13px;color:#a0a0b8;line-height:1.75;
@@ -516,16 +527,16 @@ elif st.session_state.step == 4:
         {doc.get('title','Document')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span style="font-size:11px;padding:3px 10px;border-radius:20px;
-            background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+            background:#222;border:1px solid #2a2a3e;color:#8080a0;">
             {doc.get('department','')}</span>
             <span style="font-size:11px;padding:3px 10px;border-radius:20px;
-            background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+            background:#222;border:1px solid #2a2a3e;color:#8080a0;">
             {doc.get('document_type','')}</span>
             <span style="font-size:11px;padding:3px 10px;border-radius:20px;
-            background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+            background:#222;border:1px solid #2a2a3e;color:#8080a0;">
             {doc.get('version','v1.0')}</span>
             <span style="font-size:11px;padding:3px 10px;border-radius:20px;
-            background:#1a1a2e;border:1px solid #2a2a3e;color:#8080a0;">
+            background:#222;border:1px solid #2a2a3e;color:#8080a0;">
             {doc.get('company_name','')}</span>
         </div>
     </div>
