@@ -1,5 +1,6 @@
 import streamlit as st
 import sys, os, requests
+import numpy
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.api import get_all_documents, get_departments, push_to_notion, get_pdf_url, get_docx_url
