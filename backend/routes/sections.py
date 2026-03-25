@@ -61,14 +61,14 @@ Generate the section content now:
 @router.post("/generate_section")
 def generate_section(data: GenerateSectionRequest):
 
-    # ── Rate limiting ─────────────────────────────────────
+    # Rate limiting 
     if not check_rate_limit(f"generate_section_{data.document_id}", max_calls=20, window_seconds=60):
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
-    # ── Job tracking ──────────────────────────────────────
+    # Job tracking 
     job_id = f"section_{data.document_id}_{data.section_order}"
     set_job_status(job_id, "processing", {
         "document_id":   data.document_id,

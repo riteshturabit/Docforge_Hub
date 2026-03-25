@@ -71,7 +71,7 @@ def generate_questions(template_id: int):
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
-    # ── Deduplication — prevent double generation ────────
+    #  Deduplication — prevent double generation
     dedup_key = f"questions_{template_id}"
     if is_duplicate(dedup_key, ttl=30):
         raise HTTPException(
@@ -79,7 +79,7 @@ def generate_questions(template_id: int):
             detail="Questions are already being generated for this template."
         )
 
-    # ── Job tracking ──────────────────────────────────────
+    # Job tracking 
     job_id = f"questions_{template_id}"
     set_job_status(job_id, "processing", {"template_id": template_id})
 

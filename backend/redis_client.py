@@ -17,7 +17,7 @@ def get_redis():
     return redis_client
 
 
-# ── Custom JSON serializer ────────────────────────────────
+# Custom JSON serializer 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime, date)):
@@ -33,9 +33,7 @@ def from_json(data: str):
     return json.loads(data)
 
 
-# ══════════════════════════════════════════════════════════
 # JOB TRACKING
-# ══════════════════════════════════════════════════════════
 
 def set_job_status(job_id: str, status: str, meta: dict = {}):
     data = {"status": status, **meta}
@@ -55,9 +53,7 @@ def delete_job(job_id: str):
     redis_client.delete(f"job:{job_id}")
 
 
-# ══════════════════════════════════════════════════════════
 # DEDUPLICATION
-# ══════════════════════════════════════════════════════════
 
 def is_duplicate(key: str, ttl: int = 30) -> bool:
     result = redis_client.set(
@@ -71,10 +67,7 @@ def is_duplicate(key: str, ttl: int = 30) -> bool:
 def clear_dedup(key: str):
     redis_client.delete(f"dedup:{key}")
 
-
-# ══════════════════════════════════════════════════════════
 # RATE LIMITING
-# ══════════════════════════════════════════════════════════
 
 def check_rate_limit(key: str, max_calls: int, window_seconds: int) -> bool:
     redis_key = f"rate:{key}"
@@ -96,10 +89,7 @@ def get_rate_limit_remaining(key: str, max_calls: int) -> int:
         return max_calls
     return max(0, max_calls - int(current))
 
-
-# ══════════════════════════════════════════════════════════
 # CACHING
-# ══════════════════════════════════════════════════════════
 
 def cache_set(key: str, data, ttl: int = 300):
     redis_client.setex(
@@ -118,10 +108,9 @@ def cache_delete(key: str):
     redis_client.delete(f"cache:{key}")
 
 
-# ══════════════════════════════════════════════════════════
-# HEALTH CHECK
-# ══════════════════════════════════════════════════════════
 
+# HEALTH CHECK
+ 
 def redis_health() -> bool:
     try:
         return redis_client.ping()
