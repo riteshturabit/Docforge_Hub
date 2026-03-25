@@ -1,29 +1,14 @@
 import json
+import re
 from fastapi import APIRouter, HTTPException
-from langchain.prompts import PromptTemplate
-from langchain.output_parsers import PydanticOutputParser
-from langchain_core.pydantic_v1 import BaseModel, Field
-from typing import List
+from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.llm import llm
 
 router = APIRouter()
 
-
-# ── Pydantic schema for LLM output ───────────────────────
-class SectionQuestions(BaseModel):
-    section: str = Field(description="Section title")
-    questions: List[str] = Field(description="List of questions for this section")
-
-class DocumentQuestions(BaseModel):
-    sections: List[SectionQuestions] = Field(
-        description="List of sections with questions"
-    )
-
-
-# ── Prompt template ───────────────────────────────────────
 QUESTIONS_PROMPT = PromptTemplate(
-    input_variables=["template_name", "sections", "format_instructions"],
+    input_variables=["template_name", "sections"],
     template="""
 You are an enterprise SaaS documentation assistant.
 
@@ -38,11 +23,41 @@ Rules:
 - Generate 2-3 questions PER section
 - Map each question to its exact section title
 - Total questions should be 40-45
-- Questions must be specific and help generate professional content
+- Questions must be specific and professional
 
-{format_instructions}
+Return ONLY this exact JSON format, nothing else:
+{{
+  "sections": [
+    {{
+      "section": "Overview",
+      "questions": ["question 1", "question 2"]
+    }}
+  ]
+}}
+
+Only return JSON. No explanations. No markdown.
 """
 )
+
+
+def extract_json(text: str) -> dict:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    try:
+        start = text.find("{")
+        end   = text.rfind("}") + 1
+        if start != -1 and end > start:
+            return json.loads(text[start:end])
+    except json.JSONDecodeError:
+        pass
+    try:
+        clean = re.sub(r'```(?:json)?', '', text).strip()
+        return json.loads(clean)
+    except json.JSONDecodeError:
+        pass
+    raise ValueError("Could not extract valid JSON from LLM response")
 
 
 @router.post("/generate_questions")
@@ -50,7 +65,6 @@ def generate_questions(template_id: int):
     conn   = get_connection()
     cursor = conn.cursor()
 
-    # Get template name
     cursor.execute(
         "SELECT name FROM document_templates WHERE id=%s",
         (template_id,)
@@ -60,7 +74,6 @@ def generate_questions(template_id: int):
         raise HTTPException(status_code=404, detail="Template not found")
     template_name = result[0]
 
-    # Get sections
     cursor.execute(
         """
         SELECT section_title, section_order
@@ -70,56 +83,44 @@ def generate_questions(template_id: int):
         """,
         (template_id,)
     )
-    sections = cursor.fetchall()
+    sections      = cursor.fetchall()
     sections_text = "\n".join(
         [f"{order}. {title}" for title, order in sections]
     )
 
-    # ── Use PydanticOutputParser ──────────────────────────
-    parser = PydanticOutputParser(pydantic_object=DocumentQuestions)
+    chain = QUESTIONS_PROMPT | llm
 
-    prompt = QUESTIONS_PROMPT.format(
-        template_name=template_name,
-        sections=sections_text,
-        format_instructions=parser.get_format_instructions()
-    )
+    max_retries = 3
+    data        = None
 
-    # ── Invoke with retry ─────────────────────────────────
-    try:
-        response = llm.invoke(prompt)
-        data     = parser.parse(response.content)
-    except Exception:
-        # Fallback to raw JSON parsing
+    for attempt in range(max_retries):
         try:
-            raw = response.content
-            # Extract JSON from response
-            start = raw.find("{")
-            end   = raw.rfind("}") + 1
-            if start != -1 and end != 0:
-                data = DocumentQuestions.parse_raw(raw[start:end])
-            else:
+            response = chain.invoke({
+                "template_name": template_name,
+                "sections":      sections_text
+            })
+            data = extract_json(response.content)
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=500,
-                    detail="LLM returned invalid format. Try again."
+                    detail=f"LLM failed after {max_retries} attempts: {str(e)}"
                 )
-        except Exception:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to parse questions. Try again."
-            )
+            continue
 
-    # Delete old questions
+    if not data or "sections" not in data:
+        raise HTTPException(status_code=500, detail="Invalid response from LLM")
+
     cursor.execute(
         "DELETE FROM template_questions WHERE template_id=%s",
         (template_id,)
     )
 
-    # Insert new questions
     inserted = 0
-    for sec in data.sections:
-        section_title = sec.section
+    for sec in data["sections"]:
+        section_title = sec["section"]
 
-        # Exact match
         cursor.execute(
             """
             SELECT section_order FROM template_sections
@@ -129,7 +130,6 @@ def generate_questions(template_id: int):
         )
         result = cursor.fetchone()
 
-        # Fuzzy match if not found
         if not result:
             cursor.execute(
                 """
@@ -145,11 +145,12 @@ def generate_questions(template_id: int):
 
         section_order = result[0]
 
-        for i, q in enumerate(sec.questions, start=1):
+        for i, q in enumerate(sec["questions"], start=1):
             cursor.execute(
                 """
                 INSERT INTO template_questions
-                (template_id, section_title, question, section_order, question_order)
+                (template_id, section_title, question,
+                section_order, question_order)
                 VALUES (%s,%s,%s,%s,%s)
                 """,
                 (template_id, section_title, q, section_order, i)
@@ -161,7 +162,7 @@ def generate_questions(template_id: int):
     conn.close()
 
     return {
-        "message": "Questions generated and stored",
+        "message":         "Questions generated and stored",
         "total_questions": inserted
     }
 
@@ -203,6 +204,6 @@ def get_next_questions(document_id: str, section_order: int):
     conn.close()
 
     return {
-        "section": section[0] if section else "",
+        "section":   section[0] if section else "",
         "questions": questions
     }

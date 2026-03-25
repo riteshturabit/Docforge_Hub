@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.llm import llm
 
 router = APIRouter()
 
-# ── Action descriptions ───────────────────────────────────
 ACTION_MAP = {
     "longer":   "Make the content more detailed and comprehensive",
     "shorter":  "Make the content shorter and to the point",
@@ -18,9 +16,11 @@ ACTION_MAP = {
     "grammar":  "Fix grammar and improve sentence structure"
 }
 
-# ── Prompt template for single section ───────────────────
 ENHANCE_SECTION_PROMPT = PromptTemplate(
-    input_variables=["section_title", "content", "instruction", "custom_instruction"],
+    input_variables=[
+        "section_title", "content",
+        "instruction", "custom_instruction"
+    ],
     template="""
 You are an expert enterprise document editor.
 
@@ -44,9 +44,10 @@ Return only the improved content:
 """
 )
 
-# ── Prompt template for full document ────────────────────
 ENHANCE_DOCUMENT_PROMPT = PromptTemplate(
-    input_variables=["instruction", "custom_instruction", "full_text"],
+    input_variables=[
+        "instruction", "custom_instruction", "full_text"
+    ],
     template="""
 You are an expert enterprise document editor.
 
@@ -82,7 +83,6 @@ def enhance_section(data: dict):
 
     instruction = ACTION_MAP.get(action, "Improve the content quality")
 
-    # ── Single section ────────────────────────────────────
     if section_order is not None:
         cursor.execute(
             """
@@ -99,12 +99,7 @@ def enhance_section(data: dict):
             raise HTTPException(status_code=404, detail="Section not found")
 
         section_title, content = section
-
-        chain = LLMChain(
-            llm=llm,
-            prompt=ENHANCE_SECTION_PROMPT,
-            verbose=False
-        )
+        chain = ENHANCE_SECTION_PROMPT | llm
 
         try:
             response = chain.invoke({
@@ -113,7 +108,7 @@ def enhance_section(data: dict):
                 "instruction":        instruction,
                 "custom_instruction": custom_instruction
             })
-            enhanced = response.get("text", "")
+            enhanced = response.content or ""
         except Exception as e:
             cursor.close()
             conn.close()
@@ -124,13 +119,11 @@ def enhance_section(data: dict):
 
         cursor.close()
         conn.close()
-
         return {
             "section":          section_title,
             "enhanced_content": enhanced
         }
 
-    # ── Full document ─────────────────────────────────────
     else:
         cursor.execute(
             """
@@ -150,12 +143,7 @@ def enhance_section(data: dict):
         full_text = "\n\n".join(
             [f"{s[0]}:\n{s[1]}" for s in sections]
         )
-
-        chain = LLMChain(
-            llm=llm,
-            prompt=ENHANCE_DOCUMENT_PROMPT,
-            verbose=False
-        )
+        chain = ENHANCE_DOCUMENT_PROMPT | llm
 
         try:
             response = chain.invoke({
@@ -163,7 +151,7 @@ def enhance_section(data: dict):
                 "custom_instruction": custom_instruction,
                 "full_text":          full_text
             })
-            enhanced = response.get("text", "")
+            enhanced = response.content or ""
         except Exception as e:
             cursor.close()
             conn.close()
@@ -174,7 +162,6 @@ def enhance_section(data: dict):
 
         cursor.close()
         conn.close()
-
         return {"enhanced_document": enhanced}
 
 
@@ -198,6 +185,4 @@ def save_enhanced_section(data: dict):
     conn.commit()
     cursor.close()
     conn.close()
-
     return {"message": "Section updated successfully"}
-

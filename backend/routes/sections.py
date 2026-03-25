@@ -1,7 +1,6 @@
 import re
 from fastapi import APIRouter, HTTPException
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.models import GenerateSectionRequest
 from backend.llm import llm, get_memory, save_to_memory
@@ -9,7 +8,6 @@ from backend.llm import llm, get_memory, save_to_memory
 router = APIRouter()
 
 
-# ── Clean markdown from LLM output ───────────────────────
 def clean_content(text: str) -> str:
     text = re.sub(r'#{1,6}\s*', '', text)
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
@@ -30,13 +28,8 @@ def clean_content(text: str) -> str:
     return text.strip()
 
 
-# ── Prompt template for section generation ────────────────
 SECTION_PROMPT = PromptTemplate(
-    input_variables=[
-        "section_title",
-        "answers_text",
-        "chat_history"
-    ],
+    input_variables=["section_title", "answers_text", "chat_history"],
     template="""
 You are an enterprise SaaS documentation assistant.
 Generate professional content for the following document section.
@@ -69,7 +62,6 @@ def generate_section(data: GenerateSectionRequest):
     conn   = get_connection()
     cursor = conn.cursor()
 
-    # Get template_id
     cursor.execute(
         "SELECT template_id FROM documents WHERE id=%s",
         (data.document_id,)
@@ -79,7 +71,6 @@ def generate_section(data: GenerateSectionRequest):
         raise HTTPException(status_code=404, detail="Document not found")
     template_id = result[0]
 
-    # Get section title
     cursor.execute(
         """
         SELECT section_title FROM template_sections
@@ -92,47 +83,36 @@ def generate_section(data: GenerateSectionRequest):
         raise HTTPException(status_code=404, detail="Section not found")
     section_title = result[0]
 
-    # Format answers
     answers_text = "\n".join(
         [f"{a.question}: {a.answer}" for a in data.answers]
     )
 
-    # ── Get memory for this document ──────────────────────
-    memory      = get_memory(data.document_id)
+    memory       = get_memory(data.document_id)
     chat_history = ""
-    if memory.chat_memory.messages:
-        # Get last 2 sections from memory to keep context
-        messages     = memory.chat_memory.messages[-4:]
-        chat_history = "\n".join([m.content for m in messages])
+    messages     = memory.messages
+    if messages:
+        recent_messages = messages[-4:]
+        chat_history    = "\n".join([m.content for m in recent_messages])
 
-    # ── Build chain ───────────────────────────────────────
-    chain = LLMChain(
-        llm=llm,
-        prompt=SECTION_PROMPT,
-        verbose=False
-    )
+    chain = SECTION_PROMPT | llm
 
-    # ── Invoke chain ──────────────────────────────────────
     try:
         response = chain.invoke({
             "section_title": section_title,
             "answers_text":  answers_text,
             "chat_history":  chat_history or "No previous sections yet."
         })
-        content = response.get("text", "") or "No content generated"
+        content = response.content or "No content generated"
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"LLM generation failed: {str(e)}"
         )
 
-    # Clean markdown
     content = clean_content(content)
 
-    # ── Save to memory for next sections ──────────────────
     save_to_memory(data.document_id, section_title, content)
 
-    # Save to DB
     cursor.execute(
         """
         DELETE FROM document_sections
@@ -143,7 +123,8 @@ def generate_section(data: GenerateSectionRequest):
     cursor.execute(
         """
         INSERT INTO document_sections
-        (document_id, section_title, section_content, section_order, is_completed)
+        (document_id, section_title, section_content,
+        section_order, is_completed)
         VALUES (%s,%s,%s,%s,TRUE)
         """,
         (data.document_id, section_title, content, data.section_order)
@@ -154,4 +135,3 @@ def generate_section(data: GenerateSectionRequest):
     conn.close()
 
     return {"section": section_title, "content": content}
-
