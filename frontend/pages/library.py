@@ -53,7 +53,7 @@ with st.sidebar:
     st.page_link("pages/generator.py", label="  Generator", icon="⚡")
     st.page_link("pages/library.py",   label="  Library",   icon="📚")
     st.page_link("pages/notion.py",    label="  Notion",    icon="🚀")
-    
+
     st.markdown("---")
     st.markdown("""<div style="font-size:10px;font-weight:600;color:#3a3a5c;
     letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">
@@ -141,44 +141,46 @@ else:
                 else:
                     sc = "#e24b4a"
                     sb = "rgba(226,75,74,0.12)"
-                score_html = f"""
-                <span style="font-size:11px;font-weight:600;padding:3px 8px;
-                border-radius:20px;background:{sb};color:{sc};
-                margin-left:6px;">★ {qs}/100</span>
-                """
+                score_html = (
+                    f'<span style="font-size:11px;font-weight:600;padding:3px 8px;'
+                    f'border-radius:20px;background:{sb};color:{sc};'
+                    f'margin-left:6px;">★ {qs}/100</span>'
+                )
 
-            st.markdown(f"""
-            <div style="background:#222;border:1px solid #1e1e2e;
-            border-radius:12px;padding:16px 20px;margin-bottom:4px;">
-                <div style="display:flex;justify-content:space-between;
-                align-items:flex-start;margin-bottom:10px;">
-                    <div style="width:36px;height:36px;border-radius:8px;
-                    background:#2a2a2a;display:flex;align-items:center;
-                    justify-content:center;font-size:16px;">📄</div>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <div style="font-size:11px;font-weight:500;padding:3px 10px;
-                        border-radius:20px;background:{status_bg};color:{status_color};">
-                        {status_text}</div>
-                        {score_html}
-                    </div>
-                </div>
-                <div style="font-size:14px;font-weight:600;color:#e0e0f0;
-                margin-bottom:4px;">{doc['title']}</div>
-                <div style="font-size:11px;color:#666;margin-bottom:12px;">
-                {doc['department']} · {doc['document_type']} · {doc.get('company_name','')} · {doc['created_at'][:10]}</div>
-                <div style="display:flex;gap:6px;margin-bottom:12px;">
-                    <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">
-                    {doc['department']}</span>
-                    <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">
-                    {doc['document_type']}</span>
-                    <span style="font-size:10px;padding:2px 8px;border-radius:20px;
-                    background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">
-                    {doc.get('version','v1.0')}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # ── Build full card HTML ──────────────────────
+            card_html = (
+                f'<div style="background:#222;border:1px solid #1e1e2e;'
+                f'border-radius:12px;padding:16px 20px;margin-bottom:4px;">'
+                f'<div style="display:flex;justify-content:space-between;'
+                f'align-items:flex-start;margin-bottom:10px;">'
+                f'<div style="width:36px;height:36px;border-radius:8px;'
+                f'background:#2a2a2a;display:flex;align-items:center;'
+                f'justify-content:center;font-size:16px;">📄</div>'
+                f'<div style="display:flex;align-items:center;gap:6px;">'
+                f'<div style="font-size:11px;font-weight:500;padding:3px 10px;'
+                f'border-radius:20px;background:{status_bg};color:{status_color};">'
+                f'{status_text}</div>'
+                f'{score_html}'
+                f'</div></div>'
+                f'<div style="font-size:14px;font-weight:600;color:#e0e0f0;'
+                f'margin-bottom:4px;">{doc["title"]}</div>'
+                f'<div style="font-size:11px;color:#666;margin-bottom:12px;">'
+                f'{doc["department"]} · {doc["document_type"]} · '
+                f'{doc.get("company_name","")} · {doc["created_at"][:10]}</div>'
+                f'<div style="display:flex;gap:6px;margin-bottom:12px;">'
+                f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
+                f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
+                f'{doc["department"]}</span>'
+                f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
+                f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
+                f'{doc["document_type"]}</span>'
+                f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
+                f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
+                f'{doc.get("version","v1.0")}</span>'
+                f'</div></div>'
+            )
+
+            st.markdown(card_html, unsafe_allow_html=True)
 
             c1, c2, c3 = st.columns(3)
             with c1:
