@@ -157,13 +157,40 @@ if st.session_state.step == 1:
     with col1:
         departments = get_departments()
         dept_map    = {d[1]: d[0] for d in departments}
-        dept_name   = st.selectbox("Department", list(dept_map.keys()))
-        dept_id     = dept_map[dept_name]
+
+        # ── Pre-select from suggestions ───────────────────
+        preselect_dept = st.session_state.get("preselect_dept_id", None)
+        default_dept   = 0
+        if preselect_dept:
+            dept_ids = list(dept_map.values())
+            if preselect_dept in dept_ids:
+                default_dept = dept_ids.index(preselect_dept)
+
+        dept_name = st.selectbox(
+            "Department",
+            list(dept_map.keys()),
+            index=default_dept
+        )
+        dept_id = dept_map[dept_name]
+
     with col2:
         templates = get_templates(dept_id)
         tmpl_map  = {t[1]: t[0] for t in templates}
-        tmpl_name = st.selectbox("Template", list(tmpl_map.keys()))
-        tmpl_id   = tmpl_map[tmpl_name]
+
+        # ── Pre-select template from suggestions ──────────
+        preselect_tmpl = st.session_state.get("preselect_template_id", None)
+        default_tmpl   = 0
+        if preselect_tmpl:
+            tmpl_ids = list(tmpl_map.values())
+            if preselect_tmpl in tmpl_ids:
+                default_tmpl = tmpl_ids.index(preselect_tmpl)
+
+        tmpl_name = st.selectbox(
+            "Template",
+            list(tmpl_map.keys()),
+            index=default_tmpl
+        )
+        tmpl_id = tmpl_map[tmpl_name]
 
     sections = get_sections(tmpl_id)
 
@@ -177,8 +204,9 @@ if st.session_state.step == 1:
 
     pills_html = ""
     for s in sections:
-        pills_html += f"""<span style="font-size:11px;padding:3px 10px;border-radius:20px;
-        background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">{s[0]}</span>"""
+        pills_html += f"""<span style="font-size:11px;padding:3px 10px;
+        border-radius:20px;background:#2a2a2a;border:1px solid #2a2a3e;
+        color:#8080a0;">{s[0]}</span>"""
     st.markdown(pills_html + "</div></div>", unsafe_allow_html=True)
 
     col_a, col_b = st.columns([3, 1])
@@ -188,6 +216,9 @@ if st.session_state.step == 1:
             st.session_state.template_id    = tmpl_id
             st.session_state.total_sections = len(sections)
             st.session_state.step           = 2
+            # ── Clear preselect after use ─────────────────
+            st.session_state.pop("preselect_dept_id", None)
+            st.session_state.pop("preselect_template_id", None)
             st.rerun()
 
 # ════════════════════════════════════════════════════════════
