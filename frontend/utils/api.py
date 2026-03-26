@@ -121,6 +121,14 @@ def get_score(document_id: str):
     return res.json()
 
 
+def suggest_templates(user_input: str):
+    res = requests.post(
+        f"{BASE_URL}/suggest_templates",
+        json={"user_input": user_input}
+    )
+    return res.json()
+
+
 # Notion 
 def push_to_notion(document_id: str):
     res = requests.post(
