@@ -37,7 +37,10 @@ Rules:
 - Improve quality only
 - Do not add fake policies or assumptions
 - Do not use markdown symbols like ##, **, __
-- Write in clean plain paragraphs
+- Write in short bullet points using dash (-) as prefix
+- Each bullet point should be 2-3 lines maximum
+- Cover one clear idea per bullet point
+- Use 4-6 bullet points per section
 - If using a table use proper pipe format like | Col1 | Col2 |
 
 Return only the improved content:

@@ -16,12 +16,20 @@ router = APIRouter()
 # ── Shared helpers ────────────────────────────────────────
 
 def render_rich_text_pdf(text: str) -> str:
-    """Convert **bold** and __underline__ to ReportLab HTML tags."""
-    # Escape HTML first
+    """Convert **bold**, __underline__ and auto-detect Label: pattern to rich text."""
+    # Step 1 — Auto bold label before colon FIRST (before escaping)
+    # Matches: "Some Label: rest of text" at start of string
+    text = re.sub(
+        r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+        r'**\1:** ',
+        text
+    )
+    # Step 2 — Escape HTML
     text = html.escape(text)
-    # Then apply bold and underline
+    # Step 3 — Convert **bold** to <b>
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-    text = re.sub(r'__(.*?)__',     r'<u>\1</u>', text)
+    # Step 4 — Convert __underline__ to <u>
+    text = re.sub(r'__(.*?)__', r'<u>\1</u>', text)
     return text
 
 
@@ -33,6 +41,8 @@ def clean_text_basic(text: str) -> str:
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
     text = re.sub(r'_{1,3}(.*?)_{1,3}',   r'\1', text)
     text = re.sub(r'`{1,3}(.*?)`{1,3}',   r'\1', text)
+    # Remove leading dash or bullet from table cells
+    text = re.sub(r'^[-•]\s+', '', text)
     return text.strip()
 
 
@@ -257,12 +267,17 @@ def download_pdf(document_id: str):
             # Remove ## headings only
             clean_line = re.sub(r'#{1,6}\s*', '', clean_line)
 
-           # ── Bullet point ──────────────────────────────
-            if clean_line.startswith('•') or (clean_line.startswith('*') and not clean_line.startswith('**')):
-                bullet_text = re.sub(r'^[•*]\s*', '', clean_line)
-                # Auto bold label before colon e.g. "Primary Target Audience: ..."
+           # ── Bullet point — handles •, *, - ───────────
+            if clean_line.startswith('•') or \
+            (clean_line.startswith('*') and not clean_line.startswith('**')) or \
+            re.match(r'^-\s+[A-Za-z]', clean_line):
+
+                # Strip bullet/dash symbol
+                bullet_text = re.sub(r'^[•*\-]\s*', '', clean_line)
+
+                # Auto bold label before colon
                 bullet_text = re.sub(
-                    r'^([A-Za-z][^:]{2,50}):\s',
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
                     r'**\1:** ',
                     bullet_text
                 )
@@ -456,14 +471,15 @@ def download_docx(document_id: str):
             # Remove ## headings only
             clean_line = re.sub(r'#{1,6}\s*', '', clean_line).strip()
 
-            # ── Bullet point ──────────────────────────────
-            if clean_line.startswith('•') or (
-                clean_line.startswith('*') and not clean_line.startswith('**')
-            ):
-                bullet_text = re.sub(r'^[•*]\s*', '', clean_line)
+            # ── Bullet point — handles •, *, - ───────────
+            if clean_line.startswith('•') or \
+            (clean_line.startswith('*') and not clean_line.startswith('**')) or \
+            re.match(r'^-\s+[A-Za-z]', clean_line):
+
+                bullet_text = re.sub(r'^[•*\-]\s*', '', clean_line)
                 # Auto bold label before colon
                 bullet_text = re.sub(
-                    r'^([A-Za-z][^:]{2,50}):\s',
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
                     r'**\1:** ',
                     bullet_text
                 )
@@ -475,6 +491,11 @@ def download_docx(document_id: str):
 
             # ── Regular text ──────────────────────────────
             else:
+                clean_line = re.sub(
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+                    r'**\1:** ',
+                    clean_line
+                )
                 para = doc.add_paragraph(style='Normal')
                 add_rich_line_docx(para, clean_line)
 
