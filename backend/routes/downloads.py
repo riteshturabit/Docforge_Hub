@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from backend.database import get_connection
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from docx import Document
@@ -134,7 +134,8 @@ def download_pdf(document_id: str):
         fontName='Helvetica',
         textColor=colors.HexColor('#2a2a4a'),
         leading=18,
-        spaceAfter=6
+        spaceAfter=6,
+        alignment=4    # 4 = TA_JUSTIFY
     )
     bullet_style = ParagraphStyle(
         'Bullet',
@@ -145,7 +146,8 @@ def download_pdf(document_id: str):
         leading=18,
         spaceAfter=4,
         leftIndent=16,
-        firstLineIndent=0
+        firstLineIndent=0,
+        alignment=4    # 4 = TA_JUSTIFY
     )
     table_header_style = ParagraphStyle(
         'TableHeader',
