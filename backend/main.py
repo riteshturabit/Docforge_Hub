@@ -14,7 +14,8 @@ from backend.routes import (
     sections,
     enhance,
     downloads,
-    notion
+    notion,
+    scoring
 )
 
 app = FastAPI(title="DocForge Hub API", version="1.0.0")
@@ -28,6 +29,7 @@ app.include_router(sections.router,    tags=["Sections"])
 app.include_router(enhance.router,     tags=["Enhance"])
 app.include_router(downloads.router,   tags=["Downloads"])
 app.include_router(notion.router,      tags=["Notion"])
+app.include_router(scoring.router, tags=["Scoring"])
 
 
 @app.get("/")
