@@ -1,4 +1,4 @@
-import json
+#import json
 import re
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
@@ -77,7 +77,7 @@ Answer:
 )
 
 @router.post("/chat_document")
-def chat_document(data: dict):
+def chat_document(data: dict[str, object]) -> dict[str, str]:
     document_id  = data.get("document_id")
     user_question = data.get("question", "").strip()
     chat_history  = data.get("chat_history", [])
@@ -152,9 +152,11 @@ def chat_document(data: dict):
             "chat_history":     history_text or "No previous conversation.",
             "user_question":    user_question
         })
+        raw_content = response.content
         answer = clean_chat_response(
-    response.content or "I could not generate an answer. Please try again."
-)
+            str(raw_content) if not isinstance(raw_content, str)
+            else raw_content or "I could not generate an answer. Please try again."
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,

@@ -48,5 +48,5 @@ def health_check():
     }
 
 @app.get("/job/{job_id}")
-def get_job(job_id: str):
+def get_job(job_id: str) -> dict:
     return get_job_status(job_id)

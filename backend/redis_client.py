@@ -19,31 +19,31 @@ def get_redis():
 
 # Custom JSON serializer 
 class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        if isinstance(obj, tuple):
-            return list(obj)
-        return super().default(obj)
+    def default(self, o: object) -> object:
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        if isinstance(o, tuple):
+            return list(o)
+        return super().default(o)
 
-def to_json(data) -> str:
+def to_json(data: object) -> str:
     return json.dumps(data, cls=CustomEncoder)
 
-def from_json(data: str):
+def from_json(data: str) -> object:
     return json.loads(data)
 
 
 # JOB TRACKING
 
-def set_job_status(job_id: str, status: str, meta: dict = {}):
-    data = {"status": status, **meta}
+def set_job_status(job_id: str, status: str, meta: dict[str, object] = {}) -> None:
+    data: dict[str, object] = {"status": status, **meta}
     redis_client.setex(
         f"job:{job_id}",
         3600,
         to_json(data)
     )
 
-def get_job_status(job_id: str) -> dict:
+def get_job_status(job_id: str) -> dict[str, object]:
     data = redis_client.get(f"job:{job_id}")
     if data:
         return from_json(data)
@@ -91,14 +91,14 @@ def get_rate_limit_remaining(key: str, max_calls: int) -> int:
 
 # CACHING
 
-def cache_set(key: str, data, ttl: int = 300):
+def cache_set(key: str, data: object, ttl: int = 300) -> None:
     redis_client.setex(
         f"cache:{key}",
         ttl,
         to_json(data)
     )
 
-def cache_get(key: str):
+def cache_get(key: str) -> object:
     data = redis_client.get(f"cache:{key}")
     if data:
         return from_json(data)
@@ -113,6 +113,7 @@ def cache_delete(key: str):
  
 def redis_health() -> bool:
     try:
-        return redis_client.ping()
+        result = redis_client.ping()
+        return bool(result)
     except Exception:
         return False
