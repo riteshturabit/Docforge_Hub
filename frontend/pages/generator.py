@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+#2e2e33 good bg color for company details
 import requests
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -62,8 +63,8 @@ with st.sidebar:
             display:flex;align-items:center;justify-content:center;
             font-size:14px;font-weight:600;color:#fff;">D</div>
             <div>
-                <div style="font-size:14px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                <div style="font-size:11px;color:#4040a0;">AI Document Generation System</div>
+                <div style="font-size:16px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
+                <div style="font-size:14px;color:#4040a0;">AI Document Generation System</div>
             </div>
         </div>
     </div>
@@ -108,15 +109,15 @@ for k, v in defaults.items():
 # ── Page header ───────────────────────────────────────────
 st.markdown("""
 <div style="padding:24px 0 8px;">
-    <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+    <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
     Document Generator</div>
-    <div style="font-size:13px;color:#666;">
+    <div style="font-size:16px;color:#666;margin-bottom:20px;">
     Generate enterprise-grade documents using AI. Answer questions section by section.</div>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Step indicator ────────────────────────────────────────
-steps        = ["Select template", "Company info", "Q&A sections", "Preview & export"]
+steps        = ["Select Template", "Company Info", "Q&A Sections", "Preview & Export"]
 colors       = ["#7F77DD" if i+1 == st.session_state.step
                 else "#1D9E75" if i+1 < st.session_state.step
                 else "#2a2a3e"
@@ -126,7 +127,7 @@ labels_color = ["#e0e0f0" if i+1 == st.session_state.step
                 else "#4a4a6a"
                 for i in range(4)]
 
-step_html = '<div style="display:flex;align-items:center;gap:0;margin-bottom:24px;">'
+step_html = '<div style="display:flex;align-items:center;gap:0;margin-bottom:28px;">'
 for i, (s, c, lc) in enumerate(zip(steps, colors, labels_color)):
     num_color = "#fff" if i+1 <= st.session_state.step else "#4a4a6a"
     step_html += f"""
@@ -134,7 +135,7 @@ for i, (s, c, lc) in enumerate(zip(steps, colors, labels_color)):
         <div style="width:26px;height:26px;border-radius:50%;background:{c};
         display:flex;align-items:center;justify-content:center;
         font-size:11px;font-weight:600;color:{num_color};flex-shrink:0;">{i+1}</div>
-        <div style="font-size:12px;font-weight:500;color:{lc};">{s}</div>
+        <div style="font-size:17px;font-weight:500;color:{lc};">{s}</div>
     </div>
     """
     if i < 3:
@@ -150,7 +151,7 @@ st.markdown("---")
 if st.session_state.step == 1:
 
     st.markdown("""
-    <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:16px;">
+    <div style="font-size:19px;font-weight:600;color:#e0e0f0;margin-bottom:20px;">
     Choose your document</div>
     """, unsafe_allow_html=True)
 
@@ -183,19 +184,20 @@ if st.session_state.step == 1:
 
     st.markdown(f"""
     <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
-    padding:16px 20px;margin:16px 0;">
-        <div style="font-size:12px;color:#888;margin-bottom:10px;">
-        Template preview — {len(sections)} sections</div>
+    padding:16px 20px;margin:20px 0;">
+        <div style="font-size:15px;color:#e0e0f0;font-weight:600;margin-bottom:10px;">
+        Template Preview — {len(sections)} sections</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
     """, unsafe_allow_html=True)
 
     pills_html = ""
     for s in sections:
         pills_html += f"""<span style="font-size:11px;padding:3px 10px;
-        border-radius:20px;background:#2a2a2a;border:1px solid #2a2a3e;
-        color:#8080a0;">{s[0]}</span>"""
+border-radius:20px;background:rgba(127,119,160,0.15);
+border:1px solid rgba(127,119,221,0.4);
+color:#AFA9EC;font-weight:500;">{s[0]}</span>"""
     st.markdown(pills_html + "</div></div>", unsafe_allow_html=True)
-
+    
     col_a, col_b = st.columns([3, 1])
     with col_b:
         if st.button("Continue →", type="primary", use_container_width=True):
