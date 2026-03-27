@@ -3,7 +3,7 @@ import re
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from backend.database import get_connection
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak, CondPageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib import colors
@@ -18,7 +18,7 @@ router = APIRouter()
 
 def render_rich_text_pdf(text: str) -> str:
     text = re.sub(
-        r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+        r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,120}):\s',
         r'**\1:** ',
         text
     )
@@ -152,7 +152,8 @@ def download_pdf(document_id: str):
         fontName='Helvetica-Bold',
         textColor=colors.HexColor('#7F77DD'),
         spaceBefore=16,
-        spaceAfter=6
+        spaceAfter=6,
+        keepWithNext=True
     )
     body_style = ParagraphStyle(
         'Body',
@@ -471,12 +472,13 @@ def download_pdf(document_id: str):
         sec_title   = row[0] or "Untitled Section"
         sec_content = row[1] or "No content available"
 
+        story.append(CondPageBreak(inch * 2))
         story.append(Paragraph(html.escape(sec_title), section_style))
         story.append(HRFlowable(
             width="100%", thickness=0.5,
-            color=colors.HexColor('#e0e0f0')
+            color=colors.HexColor('#e0e0f0'),
+            spaceAfter=8
         ))
-        story.append(Spacer(1, 8))
 
         lines     = sec_content.split('\n')
         i         = 0
@@ -517,7 +519,7 @@ def download_pdf(document_id: str):
                re.match(r'^-\s+[A-Za-z]', clean_line):
                 bullet_text = re.sub(r'^[•*\-]\s*', '', clean_line)
                 bullet_text = re.sub(
-                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,120}):\s',
                     r'**\1:** ',
                     bullet_text
                 )
@@ -537,20 +539,16 @@ def download_pdf(document_id: str):
         if page_num == 1:
             return
         canvas.saveState()
-        # Bottom left
         canvas.setFont('Helvetica', 9)
         canvas.setFillColor(colors.HexColor('#aaaaaa'))
         canvas.drawString(60, 30, "DocForge Hub")
-        # Bottom center — page number
         canvas.drawCentredString(
             doc.pagesize[0] / 2, 30,
             f"Page {page_num}"
         )
-        # Bottom right
         canvas.setFont('Helvetica-Bold', 9)
         canvas.setFillColor(colors.HexColor('#7F77DD'))
         canvas.drawRightString(doc.pagesize[0] - 60, 30, "CONFIDENTIAL")
-        # Top purple line
         canvas.setStrokeColor(colors.HexColor('#7F77DD'))
         canvas.setLineWidth(2)
         canvas.line(
@@ -561,7 +559,6 @@ def download_pdf(document_id: str):
         )
         canvas.restoreState()
 
-    # ── Build PDF — OUTSIDE add_page_number ──────────────
     doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
 
     return FileResponse(
@@ -722,9 +719,9 @@ def download_docx(document_id: str):
     doc.add_paragraph("")
     doc.add_paragraph("")
 
-    meta_tbl      = doc.add_table(rows=2, cols=2)
+    meta_tbl       = doc.add_table(rows=2, cols=2)
     meta_tbl.style = 'Table Grid'
-    meta_data     = [
+    meta_data      = [
         ("DEPARTMENT", department or "—"),
         ("VERSION",    version    or "v1.0"),
         ("CREATED ON", date_str   or "—"),
@@ -876,7 +873,7 @@ def download_docx(document_id: str):
                re.match(r'^-\s+[A-Za-z]', clean_line):
                 bullet_text = re.sub(r'^[•*\-]\s*', '', clean_line)
                 bullet_text = re.sub(
-                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,120}):\s',
                     r'**\1:** ',
                     bullet_text
                 )
@@ -887,7 +884,7 @@ def download_docx(document_id: str):
                 add_rich_line_docx(para, bullet_text)
             else:
                 clean_line = re.sub(
-                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,60}):\s',
+                    r'^([A-Za-z][A-Za-z0-9\s\(\)\/\-\&]{2,120}):\s',
                     r'**\1:** ',
                     clean_line
                 )
