@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from backend.redis_client import redis_health,get_job_status
+from backend.routes import chat
 
 
 load_dotenv()
@@ -32,6 +33,7 @@ app.include_router(downloads.router,   tags=["Downloads"])
 app.include_router(notion.router,      tags=["Notion"])
 app.include_router(scoring.router,     tags=["Scoring"])
 app.include_router(suggestions.router, tags=["Suggestions"])
+app.include_router(chat.router,        tags=["Chat"]) 
 
 
 @app.get("/")
