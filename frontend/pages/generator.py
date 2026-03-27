@@ -629,10 +629,10 @@ elif st.session_state.step == 4:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.button("🔄 Rescore document", use_container_width=False):
-            with st.spinner("Rescoring..."):
-                score_data = score_document(document_id)
-            st.rerun()
+        # if st.button("🔄 Rescore document", use_container_width=False):
+        #     with st.spinner("Rescoring..."):
+        #         score_data = score_document(document_id)
+        #     st.rerun()
 
     st.markdown("---")
 
