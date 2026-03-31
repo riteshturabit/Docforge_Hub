@@ -78,6 +78,7 @@ def score_document(document_id: str):
     cursor = conn.cursor()
 
     # Get document metadata 
+    cursor.execute(
         """
         SELECT
             d.title,
