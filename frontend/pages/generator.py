@@ -384,9 +384,9 @@ elif st.session_state.step == 3:
         st.markdown(f"""
         <div style="display:flex;align-items:center;
         justify-content:space-between;margin-bottom:12px;">
-            <div style="font-size:13px;font-weight:600;color:#e0e0f0;">
+            <div style="font-size:14px;font-weight:600;color:#e0e0f0;">
             Generated — {st.session_state.section_name}</div>
-            <div style="font-size:11px;color:#1D9E75;
+            <div style="font-size:14px;color:#1D9E75;
             background:rgba(29,158,117,0.12);padding:3px 10px;
             border-radius:20px;border:1px solid rgba(29,158,117,0.2);">
             Ready</div>
@@ -427,7 +427,7 @@ elif st.session_state.step == 3:
             <div style="background:#222;border:1px solid #1e1e2e;
             border-left:3px solid #7F77DD;
             border-radius:0 12px 12px 0;padding:16px 20px;
-            font-size:13px;color:#a0a0b8;line-height:1.75;
+            font-size:15px;color:#a0a0b8;line-height:1.75;
             max-height:300px;overflow-y:auto;">
             {st.session_state.generated_content.replace(chr(10), '<br>')}
             </div>

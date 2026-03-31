@@ -83,14 +83,14 @@ def suggest_templates(data: dict):
             detail="Please provide more details about your company."
         )
 
-    # ── Check cache ───────────────────────────────────────
+    #  Check cache 
     import hashlib
     cache_key = f"suggestions_{hashlib.md5(user_input.encode()).hexdigest()}"
     cached    = cache_get(cache_key)
     if cached:
         return cached
 
-    # ── Get all templates from DB ─────────────────────────
+    # Get all templates from DB 
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -118,7 +118,7 @@ def suggest_templates(data: dict):
         for t in templates
     ])
 
-    # ── LangChain call ────────────────────────────────────
+    # LangChain call 
     chain = SUGGESTIONS_PROMPT | llm
 
     try:
@@ -139,7 +139,7 @@ def suggest_templates(data: dict):
             detail="Invalid response from LLM"
         )
 
-    # ── Build response ────────────────────────────────────
+    # Build response 
     # Get template_id to department_id mapping for frontend navigation
     conn   = get_connection()
     cursor = conn.cursor()
@@ -177,7 +177,7 @@ def suggest_templates(data: dict):
         "total":        len(enriched)
     }
 
-    # ── Cache for 30 mins ─────────────────────────────────
+    # Cache for 30 mins 
     cache_set(cache_key, result, ttl=1800)
 
     return result

@@ -14,7 +14,7 @@ from docx import Document
 router = APIRouter()
 
 
-# ── Shared helpers ────────────────────────────────────────
+# Shared helpers 
 
 def render_rich_text_pdf(text: str) -> str:
     text = re.sub(
@@ -61,9 +61,7 @@ def parse_table_rows(lines: list) -> list:
     return rows
 
 
-# ══════════════════════════════════════════════════════════
 # PDF DOWNLOAD
-# ══════════════════════════════════════════════════════════
 
 @router.get("/download/pdf/{document_id}")
 def download_pdf(document_id: str):
@@ -100,7 +98,7 @@ def download_pdf(document_id: str):
     cursor.close()
     conn.close()
 
-    # ── Get cover page metadata ───────────────────────────
+    # Get cover page metadata 
     conn2   = get_connection()
     cursor2 = conn2.cursor()
     cursor2.execute(
@@ -144,7 +142,7 @@ def download_pdf(document_id: str):
     styles = getSampleStyleSheet()
     story  = []
 
-    # ── Content styles ────────────────────────────────────
+    # Content styles 
     section_style = ParagraphStyle(
         'SectionTitle',
         parent=styles['Heading2'],
@@ -248,9 +246,7 @@ def download_pdf(document_id: str):
         leading=15
     )
 
-    # ══════════════════════════════════════════════════════
     # COVER PAGE
-    # ══════════════════════════════════════════════════════
 
     story.append(HRFlowable(
         width="100%", thickness=8,
@@ -431,9 +427,8 @@ def download_pdf(document_id: str):
     story.append(footer_table)
     story.append(PageBreak())
 
-    # ══════════════════════════════════════════════════════
+
     # DOCUMENT CONTENT
-    # ══════════════════════════════════════════════════════
 
     def build_pdf_table(rows):
         if not rows:
@@ -533,7 +528,7 @@ def download_pdf(document_id: str):
 
         story.append(Spacer(1, 12))
 
-    # ── Page number function ──────────────────────────────
+    # Page number function 
     def add_page_number(canvas, doc):
         page_num = canvas.getPageNumber()
         if page_num == 1:
@@ -568,9 +563,7 @@ def download_pdf(document_id: str):
     )
 
 
-# ══════════════════════════════════════════════════════════
 # DOCX DOWNLOAD
-# ══════════════════════════════════════════════════════════
 
 @router.get("/download/docx/{document_id}")
 def download_docx(document_id: str):
@@ -646,7 +639,7 @@ def download_docx(document_id: str):
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
 
-    # ── Cover page ────────────────────────────────────────
+    # Cover page 
     cover_bar     = doc.add_paragraph()
     cover_bar.add_run("  ")
     cover_bar.paragraph_format.space_before = Pt(0)
@@ -763,7 +756,7 @@ def download_docx(document_id: str):
 
     doc.add_page_break()
 
-    # ── Document content ──────────────────────────────────
+    # Document content
     def add_rich_line_docx(para, text: str):
         parts = re.split(r'(\*\*.*?\*\*|__.*?__)', text)
         for part in parts:

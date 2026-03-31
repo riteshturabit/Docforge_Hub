@@ -68,7 +68,7 @@ def extract_json(text: str) -> dict:
 @router.post("/score_document/{document_id}")
 def score_document(document_id: str):
 
-    # ── Check cache first ─────────────────────────────────
+    # Check cache first 
     cache_key = f"score_{document_id}"
     cached    = cache_get(cache_key)
     if cached:
@@ -77,8 +77,7 @@ def score_document(document_id: str):
     conn   = get_connection()
     cursor = conn.cursor()
 
-    # ── Get document metadata ─────────────────────────────
-    cursor.execute(
+    # Get document metadata 
         """
         SELECT
             d.title,
@@ -97,7 +96,7 @@ def score_document(document_id: str):
     document_title = meta[0]
     document_type  = meta[1]
 
-    # ── Get all sections ──────────────────────────────────
+    # Get all sections 
     cursor.execute(
         """
         SELECT DISTINCT ON (section_order)
@@ -123,7 +122,7 @@ def score_document(document_id: str):
         for s in sections
     ])
 
-    # ── Score using LangChain ─────────────────────────────
+    # Score using LangChain
     chain = SCORING_PROMPT | llm
 
     try:
@@ -154,7 +153,7 @@ def score_document(document_id: str):
             score_data["relevance"]
         )
 
-    # ── Save to DB ────────────────────────────────────────
+    # Save to DB 
     breakdown = {
         "completeness":    score_data["completeness"],
         "professionalism": score_data["professionalism"],
@@ -187,7 +186,7 @@ def score_document(document_id: str):
         "grade":           get_grade(score_data["overall_score"])
     }
 
-    # ── Cache for 1 hour ──────────────────────────────────
+    # Cache for 1 hour 
     cache_set(cache_key, result, ttl=3600)
 
     return result
@@ -196,13 +195,13 @@ def score_document(document_id: str):
 @router.get("/score_document/{document_id}")
 def get_score(document_id: str):
 
-    # ── Check cache first ─────────────────────────────────
+    #  Check cache first 
     cache_key = f"score_{document_id}"
     cached    = cache_get(cache_key)
     if cached:
         return cached
 
-    # ── Fetch from DB ─────────────────────────────────────
+    # Fetch from DB 
     conn   = get_connection()
     cursor = conn.cursor()
 
