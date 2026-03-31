@@ -34,7 +34,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stButton > button:hover { background: #1e1e2e !important; border-color: #7F77DD !important; }
 .stButton > button[kind="primary"] { background: #7F77DD !important; border-color: #7F77DD !important; color: #fff !important; }
 .stButton > button[kind="primary"]:hover { background: #6a62c4 !important; }
-.stTextInput > div > div > input, .stTextArea > div > div > textarea, .stSelectbox > div > div { background: #1a1a2e !important; border: 1px solid #2a2a3e !important; border-radius: 8px !important; color: #e0e0f0 !important; font-size: 13px !important; }
+.stTextInput > div > div > input, .stTextArea > div > div > textarea, .stSelectbox > div > div { background: #1a1a2e !important; border: 1px solid #2a2a3e !important; border-radius: 8px !important; color: #e0e0f0 !important; font-size: 16px !important; }
 .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: #7F77DD !important; box-shadow: 0 0 0 2px rgba(127,119,221,0.15) !important; }
 .stProgress > div > div { background: #7F77DD !important; border-radius: 4px !important; }
 .stProgress > div { background: #1e1e2e !important; border-radius: 4px !important; }
@@ -45,7 +45,7 @@ hr { border-color: #1e1e2e !important; margin: 16px 0 !important; }
 ::-webkit-scrollbar-track { background: #0f0f1a; }
 ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
 [data-testid="stForm"] { background: #13131f !important; border: 1px solid #1e1e2e !important; border-radius: 12px !important; padding: 20px !important; }
-label { color: #8080a0 !important; font-size: 12px !important; }
+label { color: #adade8 !important; font-size: 30px !important; }
 .stSuccess { background: rgba(29,158,117,0.12) !important; border: 1px solid rgba(29,158,117,0.3) !important; border-radius: 8px !important; color: #5DCAA5 !important; }
 .stWarning { background: rgba(186,117,23,0.12) !important; border: 1px solid rgba(186,117,23,0.3) !important; border-radius: 8px !important; }
 .stError { background: rgba(226,75,74,0.12) !important; border: 1px solid rgba(226,75,74,0.3) !important; border-radius: 8px !important; }
@@ -63,12 +63,13 @@ with st.sidebar:
             display:flex;align-items:center;justify-content:center;
             font-size:14px;font-weight:600;color:#fff;">D</div>
             <div>
-                <div style="font-size:16px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                <div style="font-size:14px;color:#4040a0;">AI Document Generation System</div>
+                <div style="font-size:17px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
+                <div style="font-size:14px;color:rgb(194 194 255);
+}">AI Document Generation System</div>
             </div>
         </div>
     </div>
-    <div style="font-size:10px;font-weight:600;color:#3a3a5c;letter-spacing:1px;
+    <div style="font-size:12px;font-weight:600;color:rgb(100 100 255);letter-spacing:1px;
     text-transform:uppercase;margin-bottom:8px;padding-left:4px;">Workspace</div>
     """, unsafe_allow_html=True)
     st.page_link("app.py",             label="  Dashboard", icon="⬛")
@@ -111,8 +112,8 @@ st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
     Document Generator</div>
-    <div style="font-size:16px;color:#666;margin-bottom:20px;">
-    Generate enterprise-grade documents using AI. Answer questions section by section.</div>
+    <div style="font-size:16px;color:rgb(255 184 184);margin-bottom:20px;">
+    Generate enterprise-grade documents using AI, Answer questions section by section.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -215,18 +216,18 @@ color:#AFA9EC;font-weight:500;">{s[0]}</span>"""
 elif st.session_state.step == 2:
 
     st.markdown("""
-    <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
-    Company information</div>
-    <div style="font-size:13px;color:#666;margin-bottom:20px;">
+    <div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+    Company Information</div>
+    <div style="font-size:15px;color:rgb(255 255 255);margin-bottom:20px;">
     This context personalizes every section of your document.</div>
     """, unsafe_allow_html=True)
 
     with st.form("company_form"):
         col1, col2 = st.columns(2)
         with col1:
-            company_name     = st.text_input("Company name *")
+            company_name     = st.text_input("Company Name *")
             company_location = st.text_input("Location *")
-            company_size     = st.selectbox("Company size", [
+            company_size     = st.selectbox("Company Size", [
                 "1–10", "11–50", "51–200", "201–500", "500+"
             ])
             company_stage    = st.selectbox("Stage", [
@@ -234,9 +235,9 @@ elif st.session_state.step == 2:
             ])
         with col2:
             product_type     = st.text_input("Product type (e.g. B2B SaaS)")
-            target_customers = st.text_input("Target customers")
-            company_mission  = st.text_area("Mission statement", height=88)
-            company_vision   = st.text_area("Vision statement",  height=88)
+            target_customers = st.text_input("Target Customers")
+            company_mission  = st.text_area("Mission Statement", height=88)
+            company_vision   = st.text_area("Vision Statement",  height=88)
 
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
         col_back, col_space, col_next = st.columns([1, 2, 1])
