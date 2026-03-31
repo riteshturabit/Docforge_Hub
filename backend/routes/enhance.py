@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.llm import llm
+from backend.routes.versioning import bump_document_version
 
 router = APIRouter()
 
@@ -92,6 +93,7 @@ def enhance_section(data: dict):
             SELECT section_title, section_content
             FROM document_sections
             WHERE document_id=%s AND section_order=%s
+            AND is_latest = TRUE
             """,
             (document_id, section_order)
         )
@@ -132,7 +134,7 @@ def enhance_section(data: dict):
             """
             SELECT section_title, section_content
             FROM document_sections
-            WHERE document_id=%s
+            WHERE document_id=%s AND is_latest = TRUE
             ORDER BY section_order
             """,
             (document_id,)
@@ -177,15 +179,55 @@ def save_enhanced_section(data: dict):
     section_order = data.get("section_order")
     content       = data.get("content")
 
+    if not document_id or section_order is None or not content:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Get current section title and version
+    cursor.execute(
+        """
+        SELECT section_title, version
+        FROM document_sections
+        WHERE document_id=%s AND section_order=%s AND is_latest = TRUE
+        """,
+        (document_id, section_order)
+    )
+    row = cursor.fetchone()
+    if not row:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    section_title = row[0]
+
+    # Bump document version
+    new_ver = bump_document_version(document_id)
+
+    # Mark old versions as not latest
     cursor.execute(
         """
         UPDATE document_sections
-        SET section_content=%s
+        SET is_latest = FALSE
         WHERE document_id=%s AND section_order=%s
         """,
-        (content, document_id, section_order)
+        (document_id, section_order)
     )
+
+    # Insert new version with bumped version number
+    cursor.execute(
+        """
+        INSERT INTO document_sections
+        (document_id, section_title, section_content,
+         section_order, version, is_latest, is_completed)
+        VALUES (%s, %s, %s, %s, %s, TRUE, TRUE)
+        """,
+        (document_id, section_title, content, section_order, new_ver)
+    )
+
     conn.commit()
     cursor.close()
     conn.close()
-    return {"message": "Section updated successfully"}
+
+    return {
+        "message":     "Section updated successfully",
+        "new_version": new_ver
+    }

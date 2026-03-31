@@ -1,7 +1,6 @@
 import streamlit as st
 import sys
 import os
-#2e2e33 good bg color for company details, label color aslo good ofadade8
 import requests
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,7 +11,8 @@ from utils.api import (
     generate_section, get_progress,
     enhance_section, save_enhanced_section,
     get_pdf_url, get_docx_url, push_to_notion, get_document,
-    score_document, get_score, chat_with_document
+    score_document, get_score, chat_with_document,
+    get_section_versions, restore_version, get_document_version
 )
 
 st.set_page_config(
@@ -45,7 +45,7 @@ hr { border-color: #1e1e2e !important; margin: 16px 0 !important; }
 ::-webkit-scrollbar-track { background: #0f0f1a; }
 ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
 [data-testid="stForm"] { background: #13131f !important; border: 1px solid #1e1e2e !important; border-radius: 12px !important; padding: 20px !important; }
-label { color: #e2e2ff  !important; font-size: 30px !important; }
+label { color: #e2e2ff !important; font-size: 30px !important; }
 .stSuccess { background: rgba(29,158,117,0.12) !important; border: 1px solid rgba(29,158,117,0.3) !important; border-radius: 8px !important; color: #5DCAA5 !important; }
 .stWarning { background: rgba(186,117,23,0.12) !important; border: 1px solid rgba(186,117,23,0.3) !important; border-radius: 8px !important; }
 .stError { background: rgba(226,75,74,0.12) !important; border: 1px solid rgba(226,75,74,0.3) !important; border-radius: 8px !important; }
@@ -54,7 +54,7 @@ label { color: #e2e2ff  !important; font-size: 30px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar 
+# ── Sidebar ───────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style="padding:8px 0 24px;">
@@ -64,8 +64,7 @@ with st.sidebar:
             font-size:14px;font-weight:600;color:#fff;">D</div>
             <div>
                 <div style="font-size:17px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                <div style="font-size:14px;color:rgb(194 194 255);
-}">AI Document Generation System</div>
+                <div style="font-size:14px;color:rgb(194 194 255);">AI Document Generation System</div>
             </div>
         </div>
     </div>
@@ -93,7 +92,7 @@ with st.sidebar:
             {current} of {total} sections · {pct}%</div>
             """, unsafe_allow_html=True)
 
-# Session state 
+# ── Session state ─────────────────────────────────────────
 defaults = {
     "step": 1, "department_id": None, "template_id": None,
     "company_id": None, "document_id": None,
@@ -107,7 +106,7 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Page header 
+# ── Page header ───────────────────────────────────────────
 st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
@@ -117,7 +116,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Step indicator
+# ── Step indicator ────────────────────────────────────────
 steps        = ["Select Template", "Company Info", "Q&A Sections", "Preview & Export"]
 colors       = ["#7F77DD" if i+1 == st.session_state.step
                 else "#1D9E75" if i+1 < st.session_state.step
@@ -146,7 +145,9 @@ step_html += "</div>"
 st.markdown(step_html, unsafe_allow_html=True)
 st.markdown("---")
 
+# ════════════════════════════════════════════════════════════
 # STEP 1
+# ════════════════════════════════════════════════════════════
 if st.session_state.step == 1:
 
     st.markdown("""
@@ -156,8 +157,8 @@ if st.session_state.step == 1:
 
     col1, col2 = st.columns(2)
     with col1:
-        departments  = get_departments()
-        dept_map     = {d[1]: d[0] for d in departments}
+        departments    = get_departments()
+        dept_map       = {d[1]: d[0] for d in departments}
         preselect_dept = st.session_state.get("preselect_dept_id", None)
         default_dept   = 0
         if preselect_dept:
@@ -196,7 +197,7 @@ border-radius:20px;background:rgba(127,119,160,0.15);
 border:1px solid rgba(127,119,221,0.4);
 color:#AFA9EC;font-weight:500;">{s[0]}</span>"""
     st.markdown(pills_html + "</div></div>", unsafe_allow_html=True)
-    
+
     col_a, col_b = st.columns([3, 1])
     with col_b:
         if st.button("Continue →", type="primary", use_container_width=True):
@@ -208,8 +209,9 @@ color:#AFA9EC;font-weight:500;">{s[0]}</span>"""
             st.session_state.pop("preselect_template_id", None)
             st.rerun()
 
+# ════════════════════════════════════════════════════════════
 # STEP 2
-
+# ════════════════════════════════════════════════════════════
 elif st.session_state.step == 2:
 
     st.markdown("""
@@ -277,8 +279,9 @@ elif st.session_state.step == 2:
             st.session_state.current_section = 1
             st.rerun()
 
+# ════════════════════════════════════════════════════════════
 # STEP 3
-
+# ════════════════════════════════════════════════════════════
 elif st.session_state.step == 3:
 
     document_id     = st.session_state.document_id
@@ -322,7 +325,7 @@ elif st.session_state.step == 3:
                 """, unsafe_allow_html=True)
                 saved_val = saved_ans.get(q, "")
                 ans = st.text_area(
-                    "",
+                    "Answer",
                     value=saved_val,
                     height=72,
                     key=f"q_{current_section}_{q}",
@@ -363,9 +366,9 @@ elif st.session_state.step == 3:
             with st.spinner(f"Generating {section_name}..."):
                 result  = generate_section(document_id, current_section, answers)
                 content = result.get("content", "")
-                st.session_state.generated_content                 = content
-                st.session_state.section_name                      = section_name
-                st.session_state.saved_generated[current_section]  = content
+                st.session_state.generated_content                = content
+                st.session_state.section_name                     = section_name
+                st.session_state.saved_generated[current_section] = content
             st.rerun()
 
     if not st.session_state.generated_content:
@@ -405,9 +408,9 @@ elif st.session_state.step == 3:
                     use_container_width=True
                 ):
                     save_enhanced_section(document_id, current_section, edited)
-                    st.session_state.generated_content                 = edited
-                    st.session_state.saved_generated[current_section]  = edited
-                    st.session_state.edit_mode                         = False
+                    st.session_state.generated_content                = edited
+                    st.session_state.saved_generated[current_section] = edited
+                    st.session_state.edit_mode                        = False
                     st.success("Section saved!")
                     st.rerun()
             with col_cancel:
@@ -511,24 +514,33 @@ elif st.session_state.step == 3:
                             ec = enhanced.get("enhanced_content", "")
                         if ec:
                             save_enhanced_section(document_id, current_section, ec)
-                            st.session_state.generated_content                 = ec
-                            st.session_state.saved_generated[current_section]  = ec
-                            st.session_state.show_enhance                      = False
+                            st.session_state.generated_content                = ec
+                            st.session_state.saved_generated[current_section] = ec
+                            st.session_state.show_enhance                     = False
                             st.success("Enhanced and saved!")
                             st.rerun()
 
-
+# ════════════════════════════════════════════════════════════
 # STEP 4 — Preview & Export
-
+# ════════════════════════════════════════════════════════════
 elif st.session_state.step == 4:
 
     document_id = st.session_state.document_id
     doc         = get_document(document_id)
 
+    # ── Document title with version badge ─────────────────
+    ver_info    = get_document_version(document_id)
+    current_ver = ver_info.get("current_version", "v1.0")
+
     st.markdown(f"""
     <div style="padding:8px 0 16px;">
-        <div style="font-size:22px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
-        {doc.get('title','Document')}</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+            <div style="font-size:22px;font-weight:600;color:#e0e0f0;">
+            {doc.get('title','Document')}</div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:20px;
+            background:rgba(127,119,221,0.15);border:1px solid rgba(127,119,221,0.4);
+            color:#AFA9EC;font-weight:600;">{current_ver}</span>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span style="font-size:11px;padding:3px 10px;border-radius:20px;
             background:#222;border:1px solid #2a2a3e;color:#8080a0;">
@@ -548,7 +560,7 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # Quality Score 
+    # ── Quality Score ─────────────────────────────────────
     existing_score = get_score(document_id)
     if existing_score.get("overall_score") is None:
         with st.spinner("Analyzing document quality..."):
@@ -628,14 +640,9 @@ elif st.session_state.step == 4:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # if st.button("🔄 Rescore document", use_container_width=False):
-        #     with st.spinner("Rescoring..."):
-        #         score_data = score_document(document_id)
-        #     st.rerun()
-
     st.markdown("---")
 
-    # Export bar 
+    # ── Export bar ────────────────────────────────────────
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         st.markdown("""
@@ -680,7 +687,7 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # Sections preview 
+    # ── Sections preview with version history ─────────────
     sections = doc.get("sections", [])
     for sec in sections:
         with st.expander(f"{sec['order']}. {sec['title']}"):
@@ -690,10 +697,60 @@ elif st.session_state.step == 4:
             </div>
             """, unsafe_allow_html=True)
 
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+            # Version history button
+            if st.button(
+                "🕐 Version History",
+                key=f"ver_{sec['order']}",
+                use_container_width=False
+            ):
+                st.session_state[f"show_versions_{sec['order']}"] = \
+                    not st.session_state.get(f"show_versions_{sec['order']}", False)
+
+            if st.session_state.get(f"show_versions_{sec['order']}", False):
+                ver_data = get_section_versions(document_id, sec['order'])
+                versions = ver_data.get("versions", [])
+
+                if len(versions) <= 1:
+                    st.info("No previous versions available.")
+                else:
+                    st.markdown("""
+                    <div style="font-size:12px;color:#7F77DD;
+                    font-weight:600;margin:8px 0;">Version History</div>
+                    """, unsafe_allow_html=True)
+
+                    for v in versions:
+                        col_v, col_r = st.columns([3, 1])
+                        with col_v:
+                            badge = "✅ Current" if v['is_latest'] else f"🕐 {v['version']}"
+                            st.markdown(f"""
+                            <div style="font-size:12px;color:#e0e0f0;
+                            padding:6px 0;border-bottom:1px solid #1e1e2e;">
+                            {badge} — {v['created_at']}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col_r:
+                            if not v['is_latest']:
+                                if st.button(
+                                    "Restore",
+                                    key=f"restore_{v['id']}",
+                                    use_container_width=True
+                                ):
+                                    res = restore_version(
+                                        document_id,
+                                        sec['order'],
+                                        v['id']
+                                    )
+                                    st.success(
+                                        f"Restored to {v['version']}! "
+                                        f"New version: {res['new_version']}"
+                                    )
+                                    st.rerun()
+
     st.markdown("---")
 
-    # DOCUMENT CHAT
-
+    # ── Document Chat ─────────────────────────────────────
     st.markdown("""
     <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     💬 Ask AI about this document</div>
@@ -701,7 +758,6 @@ elif st.session_state.step == 4:
     Ask questions, request summaries or find gaps in this document.</div>
     """, unsafe_allow_html=True)
 
-    # Quick suggestion buttons
     st.markdown("""
     <div style="font-size:11px;color:#666;margin-bottom:8px;">Quick questions:</div>
     """, unsafe_allow_html=True)
@@ -720,7 +776,6 @@ elif st.session_state.step == 4:
                 key=f"quick_{qi}",
                 use_container_width=True
             ):
-                # Directly add to history and call API
                 question = quick_questions[qi]
                 st.session_state.chat_history.append({
                     "role":    "user",
@@ -739,7 +794,6 @@ elif st.session_state.step == 4:
                 })
                 st.rerun()
 
-    # Display chat history
     if st.session_state.chat_history:
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
@@ -760,12 +814,11 @@ elif st.session_state.step == 4:
                 </div>
                 """, unsafe_allow_html=True)
 
-    # Chat input
     prefill = st.session_state.pop("chat_input_prefill", "")
     col_chat, col_send = st.columns([5, 1])
     with col_chat:
         chat_input = st.text_input(
-            "",
+            "Chat",
             value=prefill,
             placeholder="Ask anything about this document...",
             label_visibility="collapsed",
@@ -776,13 +829,10 @@ elif st.session_state.step == 4:
 
     if send_btn and chat_input.strip():
         question = chat_input.strip()
-
-        # Add user message to history
         st.session_state.chat_history.append({
             "role":    "user",
             "content": question
         })
-
         with st.spinner("Thinking..."):
             result = chat_with_document(
                 document_id,
@@ -790,15 +840,12 @@ elif st.session_state.step == 4:
                 st.session_state.chat_history[:-1]
             )
             answer = result.get("answer", "Sorry, I could not answer that.")
-
-        # Add assistant message to history
         st.session_state.chat_history.append({
             "role":    "assistant",
             "content": answer
         })
         st.rerun()
 
-    # Clear chat button
     if st.session_state.chat_history:
         if st.button("🗑️ Clear chat", use_container_width=False):
             st.session_state.chat_history = []

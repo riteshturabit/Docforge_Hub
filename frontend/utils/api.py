@@ -112,6 +112,23 @@ def get_pdf_url(document_id: str):
 def get_docx_url(document_id: str):
     return f"{BASE_URL}/download/docx/{document_id}"
 
+# Version
+def get_section_versions(document_id: str, section_order: int):
+    res = requests.get(
+        f"{BASE_URL}/versions/{document_id}/{section_order}"
+    )
+    return res.json()
+
+def restore_version(document_id: str, section_order: int, section_id: str):
+    res = requests.post(
+        f"{BASE_URL}/versions/restore/{document_id}/{section_order}/{section_id}"
+    )
+    return res.json()
+
+def get_document_version(document_id: str):
+    res = requests.get(f"{BASE_URL}/versions/document/{document_id}")
+    return res.json()
+
 
 # Score
 def score_document(document_id: str):

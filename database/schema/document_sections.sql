@@ -42,5 +42,8 @@ SET section_content = REGEXP_REPLACE(
     '_{1,3}([^_]+)_{1,3}', '\1', 'g'
 );
 
+ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS version VARCHAR(10) DEFAULT 'v1.0';
+ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS is_latest BOOLEAN DEFAULT TRUE;
+ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
 
 

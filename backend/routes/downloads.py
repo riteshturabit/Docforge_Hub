@@ -13,7 +13,6 @@ from docx import Document
 
 router = APIRouter()
 
-
 # Shared helpers 
 
 def render_rich_text_pdf(text: str) -> str:

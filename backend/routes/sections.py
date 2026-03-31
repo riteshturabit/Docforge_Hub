@@ -4,7 +4,8 @@ from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.models import GenerateSectionRequest
 from backend.llm import llm, get_memory, save_to_memory
-from backend.redis_client import ( set_job_status, check_rate_limit)
+from backend.routes.versioning import bump_document_version, save_section_version
+from backend.redis_client import set_job_status, check_rate_limit
 
 router = APIRouter()
 
@@ -91,23 +92,27 @@ Generate complete section covering ALL answers in user format:
 """
 )
 
+
 @router.post("/generate_section")
 def generate_section(data: GenerateSectionRequest):
 
-    # Rate limiting 
-    if not check_rate_limit(f"generate_section_{data.document_id}", max_calls=20, window_seconds=60):
+    # Rate limiting
+    if not check_rate_limit(
+        f"generate_section_{data.document_id}",
+        max_calls=20,
+        window_seconds=60
+    ):
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
-    # Job tracking 
+    # Job tracking
     job_id = f"section_{data.document_id}_{data.section_order}"
     set_job_status(job_id, "processing", {
         "document_id":   data.document_id,
         "section_order": data.section_order
     })
-
 
     conn   = get_connection()
     cursor = conn.cursor()
@@ -160,24 +165,57 @@ def generate_section(data: GenerateSectionRequest):
         )
 
     content = clean_content(content)
-
     save_to_memory(data.document_id, section_title, content)
 
+    # ── Get current version ───────────────────────────────
+    cursor.execute(
+        "SELECT current_version FROM documents WHERE id=%s",
+        (data.document_id,)
+    )
+    ver_row     = cursor.fetchone()
+    current_ver = ver_row[0] if ver_row and ver_row[0] else "v1.0"
+
+    # ── Check if section already exists ──────────────────
     cursor.execute(
         """
-        DELETE FROM document_sections
+        SELECT COUNT(*) FROM document_sections
         WHERE document_id=%s AND section_order=%s
         """,
         (data.document_id, data.section_order)
     )
+    exists = cursor.fetchone()[0]
+
+    if exists:
+        # Bump version since content is being regenerated
+        new_ver = bump_document_version(data.document_id)
+    else:
+        new_ver = current_ver
+
+    # ── Mark old versions as not latest ──────────────────
+    cursor.execute(
+        """
+        UPDATE document_sections
+        SET is_latest = FALSE
+        WHERE document_id=%s AND section_order=%s
+        """,
+        (data.document_id, data.section_order)
+    )
+
+    # ── Insert new version ────────────────────────────────
     cursor.execute(
         """
         INSERT INTO document_sections
         (document_id, section_title, section_content,
-        section_order, is_completed)
-        VALUES (%s,%s,%s,%s,TRUE)
+         section_order, version, is_latest, is_completed)
+        VALUES (%s, %s, %s, %s, %s, TRUE, TRUE)
         """,
-        (data.document_id, section_title, content, data.section_order)
+        (
+            data.document_id,
+            section_title,
+            content,
+            data.section_order,
+            new_ver
+        )
     )
 
     conn.commit()
@@ -190,4 +228,8 @@ def generate_section(data: GenerateSectionRequest):
         "section_title": section_title
     })
 
-    return {"section": section_title, "content": content}
+    return {
+        "section": section_title,
+        "content": content,
+        "version": new_ver
+    }
