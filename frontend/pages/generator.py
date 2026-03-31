@@ -290,7 +290,7 @@ elif st.session_state.step == 3:
 
     st.progress(current_section / total_sections)
     st.markdown(f"""
-    <div style="font-size:14px;color:#666;margin-bottom:16px;">
+    <div style="font-size:14px;color:#e5cece;margin-bottom:16px;">
     Section {current_section} of {total_sections}</div>
     """, unsafe_allow_html=True)
 
