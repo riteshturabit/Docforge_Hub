@@ -1,7 +1,7 @@
 import streamlit as st
 import sys
 import os
-#2e2e33 good bg color for company details
+#2e2e33 good bg color for company details, label color aslo good ofadade8
 import requests
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,7 +45,7 @@ hr { border-color: #1e1e2e !important; margin: 16px 0 !important; }
 ::-webkit-scrollbar-track { background: #0f0f1a; }
 ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
 [data-testid="stForm"] { background: #13131f !important; border: 1px solid #1e1e2e !important; border-radius: 12px !important; padding: 20px !important; }
-label { color: #adade8 !important; font-size: 30px !important; }
+label { color: #e2e2ff  !important; font-size: 30px !important; }
 .stSuccess { background: rgba(29,158,117,0.12) !important; border: 1px solid rgba(29,158,117,0.3) !important; border-radius: 8px !important; color: #5DCAA5 !important; }
 .stWarning { background: rgba(186,117,23,0.12) !important; border: 1px solid rgba(186,117,23,0.3) !important; border-radius: 8px !important; }
 .stError { background: rgba(226,75,74,0.12) !important; border: 1px solid rgba(226,75,74,0.3) !important; border-radius: 8px !important; }
