@@ -128,7 +128,7 @@ else:
             status_bg    = "rgba(29,158,117,0.12)" if is_pub else "rgba(186,117,23,0.12)"
             status_text  = "Published" if is_pub else "Draft"
 
-            # ── Quality score badge ───────────────────────
+            #  Quality score badge 
             qs         = doc.get("quality_score")
             score_html = ""
             if qs is not None:
@@ -147,7 +147,7 @@ else:
                     f'margin-left:6px;">★ {qs}/100</span>'
                 )
 
-            # ── Build full card HTML ──────────────────────
+            # Build full card HTML
             card_html = (
                 f'<div style="background:#222;border:1px solid #1e1e2e;'
                 f'border-radius:12px;padding:16px 20px;margin-bottom:4px;">'

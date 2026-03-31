@@ -54,7 +54,7 @@ label { color: #e2e2ff  !important; font-size: 30px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────
+# Sidebar 
 with st.sidebar:
     st.markdown("""
     <div style="padding:8px 0 24px;">
@@ -93,7 +93,7 @@ with st.sidebar:
             {current} of {total} sections · {pct}%</div>
             """, unsafe_allow_html=True)
 
-# ── Session state ─────────────────────────────────────────
+# Session state 
 defaults = {
     "step": 1, "department_id": None, "template_id": None,
     "company_id": None, "document_id": None,
@@ -107,7 +107,7 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ── Page header ───────────────────────────────────────────
+# Page header 
 st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
@@ -117,7 +117,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Step indicator ────────────────────────────────────────
+# Step indicator
 steps        = ["Select Template", "Company Info", "Q&A Sections", "Preview & Export"]
 colors       = ["#7F77DD" if i+1 == st.session_state.step
                 else "#1D9E75" if i+1 < st.session_state.step
@@ -146,9 +146,7 @@ step_html += "</div>"
 st.markdown(step_html, unsafe_allow_html=True)
 st.markdown("---")
 
-# ════════════════════════════════════════════════════════════
 # STEP 1
-# ════════════════════════════════════════════════════════════
 if st.session_state.step == 1:
 
     st.markdown("""
@@ -210,9 +208,8 @@ color:#AFA9EC;font-weight:500;">{s[0]}</span>"""
             st.session_state.pop("preselect_template_id", None)
             st.rerun()
 
-# ════════════════════════════════════════════════════════════
 # STEP 2
-# ════════════════════════════════════════════════════════════
+
 elif st.session_state.step == 2:
 
     st.markdown("""
@@ -280,9 +277,8 @@ elif st.session_state.step == 2:
             st.session_state.current_section = 1
             st.rerun()
 
-# ════════════════════════════════════════════════════════════
 # STEP 3
-# ════════════════════════════════════════════════════════════
+
 elif st.session_state.step == 3:
 
     document_id     = st.session_state.document_id
@@ -521,9 +517,9 @@ elif st.session_state.step == 3:
                             st.success("Enhanced and saved!")
                             st.rerun()
 
-# ════════════════════════════════════════════════════════════
+
 # STEP 4 — Preview & Export
-# ════════════════════════════════════════════════════════════
+
 elif st.session_state.step == 4:
 
     document_id = st.session_state.document_id
@@ -552,7 +548,7 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # ── Quality Score ─────────────────────────────────────
+    # Quality Score 
     existing_score = get_score(document_id)
     if existing_score.get("overall_score") is None:
         with st.spinner("Analyzing document quality..."):
@@ -639,7 +635,7 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # ── Export bar ────────────────────────────────────────
+    # Export bar 
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         st.markdown("""
@@ -684,7 +680,7 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # ── Sections preview ──────────────────────────────────
+    # Sections preview 
     sections = doc.get("sections", [])
     for sec in sections:
         with st.expander(f"{sec['order']}. {sec['title']}"):
@@ -696,9 +692,8 @@ elif st.session_state.step == 4:
 
     st.markdown("---")
 
-    # ════════════════════════════════════════════════════
     # DOCUMENT CHAT
-    # ════════════════════════════════════════════════════
+
     st.markdown("""
     <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     💬 Ask AI about this document</div>

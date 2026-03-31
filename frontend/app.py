@@ -8,7 +8,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Redirect to generator if flag is set ─────────────────
+# Redirect to generator if flag is set
 if st.session_state.get("go_to_generator"):
     st.session_state.pop("go_to_generator")
     st.switch_page("pages/generator.py")
@@ -46,7 +46,7 @@ label, .stLabel { color: #8080a0 !important; font-size: 12px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
     st.markdown("""
     <div style="padding:8px 0 24px;">
@@ -68,7 +68,7 @@ with st.sidebar:
     st.page_link("pages/library.py",   label="  Library",   icon="📚")
     st.page_link("pages/notion.py",    label="  Notion",    icon="🚀")
 
-# ── Hero ──────────────────────────────────────────────────
+# Hero
 st.markdown("""
 <div style="padding:32px 0 8px;">
     <div style="font-size:28px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
@@ -80,7 +80,7 @@ st.markdown("""
 
 st.markdown("---")
 
-# ── Metrics ───────────────────────────────────────────────
+# Metrics 
 data      = get_all_documents()
 documents = data.get("documents", [])
 published = len([d for d in documents if d["is_published"]])
@@ -94,7 +94,7 @@ col4.metric("Templates available", 100)
 
 st.markdown("---")
 
-# ── Smart Template Suggestions ────────────────────────────
+# Smart Template Suggestions 
 st.markdown("""
 <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
 Smart template suggestions</div>
@@ -117,7 +117,7 @@ with col_btn:
         use_container_width=True
     )
 
-# ── Store suggestions in session state ────────────────────
+#  Store suggestions in session state 
 if suggest_btn and user_input:
     with st.spinner("Finding best templates for you..."):
         result = suggest_templates(user_input)
@@ -126,7 +126,7 @@ if suggest_btn and user_input:
 elif suggest_btn and not user_input:
     st.error("Please describe your company and document needs first.")
 
-# ── Show suggestions from session state ───────────────────
+# Show suggestions from session state 
 suggestions = st.session_state.get("last_suggestions", [])
 
 if suggestions:
@@ -187,7 +187,7 @@ if suggestions:
 
 st.markdown("---")
 
-# ── Quick actions ─────────────────────────────────────────
+# Quick actions
 st.markdown("""
 <div style="font-size:11px;font-weight:700;color:#444;
 letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px;">
@@ -241,7 +241,7 @@ with col3:
     if st.button("Open Notion", use_container_width=True):
         st.switch_page("pages/notion.py")
 
-# ── Recent documents ──────────────────────────────────────
+# Recent documents 
 if documents:
     st.markdown("---")
     st.markdown("""
