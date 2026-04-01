@@ -73,7 +73,7 @@ st.markdown("""
 <div style="padding:32px 0 8px;">
     <div style="font-size:28px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
     Good day, Welcome Back</div>
-    <div style="font-size:14px;color:#666;">
+    <div style="font-size:14px;color:#dfdbdb;">
     Your AI-powered document workspace. Generate, manage and publish enterprise documents.</div>
 </div>
 """, unsafe_allow_html=True)
@@ -97,8 +97,8 @@ st.markdown("---")
 # Smart Template Suggestions 
 st.markdown("""
 <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
-Smart template suggestions</div>
-<div style="font-size:13px;color:#666;margin-bottom:12px;">
+Smart Template Suggestions</div>
+<div style="font-size:16px;color:rgb(227 226 226);margin-bottom:12px;">
 Describe your company and needs — AI will suggest the most relevant documents for you.</div>
 """, unsafe_allow_html=True)
 
@@ -189,7 +189,7 @@ st.markdown("---")
 
 # Quick actions
 st.markdown("""
-<div style="font-size:11px;font-weight:700;color:#444;
+<div style="font-size:13px;font-weight:700;color:#444;
 letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px;">
 Quick actions</div>
 """, unsafe_allow_html=True)

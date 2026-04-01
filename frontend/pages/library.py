@@ -142,7 +142,7 @@ else:
                     sc = "#e24b4a"
                     sb = "rgba(226,75,74,0.12)"
                 score_html = (
-                    f'<span style="font-size:11px;font-weight:600;padding:3px 8px;'
+                    f'<span style="font-size:13px;font-weight:600;padding:3px 8px;'
                     f'border-radius:20px;background:{sb};color:{sc};'
                     f'margin-left:6px;">★ {qs}/100</span>'
                 )
@@ -157,7 +157,7 @@ else:
                 f'background:#2a2a2a;display:flex;align-items:center;'
                 f'justify-content:center;font-size:16px;">📄</div>'
                 f'<div style="display:flex;align-items:center;gap:6px;">'
-                f'<div style="font-size:11px;font-weight:500;padding:3px 10px;'
+                f'<div style="font-size:13px;font-weight:500;padding:3px 10px;'
                 f'border-radius:20px;background:{status_bg};color:{status_color};">'
                 f'{status_text}</div>'
                 f'{score_html}'
@@ -168,14 +168,14 @@ else:
                 f'{doc["department"]} · {doc["document_type"]} · '
                 f'{doc.get("company_name","")} · {doc["created_at"][:10]}</div>'
                 f'<div style="display:flex;gap:6px;margin-bottom:12px;">'
-                f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
+                f'<span style="font-size:11px;padding:2px 8px;border-radius:20px;'
                 f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
                 f'{doc["department"]}</span>'
                 f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
                 f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
                 f'{doc["document_type"]}</span>'
-                f'<span style="font-size:10px;padding:2px 8px;border-radius:20px;'
-                f'background:#2a2a2a;border:1px solid #2a2a3e;color:#8080a0;">'
+                f'<span style="font-size:11px;padding:2px 8px;border-radius:20px;'
+                f'background:#2a2a2a;border:1px solid #2a2a3e;color:rgb (218 218 237);;">'
                 f'{doc.get("version","v1.0")}</span>'
                 f'</div></div>'
             )
