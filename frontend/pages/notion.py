@@ -103,7 +103,7 @@ else:
             """, unsafe_allow_html=True)
         with col3:
             st.markdown(f"""
-            <div style="padding:14px 0;font-size:11px;color:#666;">
+            <div style="padding:14px 0;font-size:13px;color:#666;">
             {doc['created_at'][:10]}</div>
             """, unsafe_allow_html=True)
         with col4:
@@ -121,8 +121,8 @@ st.markdown("---")
 
 # Published 
 st.markdown("""
-<div style="font-size:13px;font-weight:600;color:#e0e0f0;margin-bottom:12px;">
-Published documents</div>
+<div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:12px;">
+Published Documents</div>
 """, unsafe_allow_html=True)
 
 if not published:
@@ -140,14 +140,14 @@ else:
             <div style="padding:12px 0;">
                 <div style="font-size:14px;font-weight:500;color:#e0e0f0;">
                 {doc['title']}</div>
-                <div style="font-size:11px;color:#666;margin-top:2px;">
+                <div style="font-size:13px;color:#d1cdcd;margin-top:2px;">
                 {doc['department']} · {doc['document_type']} · {doc.get('company_name','')}</div>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div style="padding:16px 0;">
-                <span style="font-size:11px;padding:3px 10px;border-radius:20px;
+                <span style="font-size:13px;padding:3px 10px;border-radius:20px;
                 background:rgba(29,158,117,0.12);color:#5DCAA5;">Published</span>
             </div>
             """, unsafe_allow_html=True)

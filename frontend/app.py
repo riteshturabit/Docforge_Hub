@@ -29,7 +29,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: #7F77DD !important; box-shadow: 0 0 0 2px rgba(127,119,221,0.15) !important; }
 [data-testid="stMetric"] { background: #222 !important; border: 1px solid #2a2a3e !important; border-radius: 12px !important; padding: 16px 20px !important; }
 [data-testid="stMetricValue"] { font-size: 26px !important; font-weight: 600 !important; color: #e0e0f0 !important; }
-[data-testid="stMetricLabel"] { font-size: 12px !important; color: #666 !important; }
+[data-testid="stMetricLabel"] { font-size: 20px !important; color:#d1c7c7 !important; }
 .stProgress > div > div { background: #7F77DD !important; border-radius: 4px !important; }
 .stProgress > div { background: #1e1e2e !important; border-radius: 4px !important; }
 hr { border-color: #1e1e2e !important; margin: 16px 0 !important; }
@@ -73,7 +73,7 @@ st.markdown("""
 <div style="padding:32px 0 8px;">
     <div style="font-size:28px;font-weight:600;color:#e0e0f0;margin-bottom:6px;">
     Good day, Welcome Back</div>
-    <div style="font-size:14px;color:#dfdbdb;">
+    <div style="font-size:15px;color:#dfdbdb;">
     Your AI-powered document workspace. Generate, manage and publish enterprise documents.</div>
 </div>
 """, unsafe_allow_html=True)
@@ -87,16 +87,16 @@ published = len([d for d in documents if d["is_published"]])
 drafts    = len(documents) - published
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total documents",     len(documents))
+col1.metric("Total Documents",     len(documents))
 col2.metric("Published to Notion", published)
 col3.metric("Drafts",              drafts)
-col4.metric("Templates available", 100)
+col4.metric("Templates Available", 100)
 
 st.markdown("---")
 
 # Smart Template Suggestions 
 st.markdown("""
-<div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+<div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
 Smart Template Suggestions</div>
 <div style="font-size:16px;color:rgb(227 226 226);margin-bottom:12px;">
 Describe your company and needs — AI will suggest the most relevant documents for you.</div>
@@ -189,7 +189,7 @@ st.markdown("---")
 
 # Quick actions
 st.markdown("""
-<div style="font-size:13px;font-weight:700;color:#444;
+<div style="font-size:16px;font-weight:700;color:#d1c7c7;
 letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px;">
 Quick actions</div>
 """, unsafe_allow_html=True)
@@ -201,9 +201,9 @@ with col1:
     <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;">
         <div style="font-size:24px;margin-bottom:12px;">⚡</div>
-        <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+        <div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         New document</div>
-        <div style="font-size:12px;color:#666;">
+        <div style="font-size:13px;color:#f1f1f1;">
         Generate from 100+ industry templates</div>
     </div>
     """, unsafe_allow_html=True)
@@ -216,9 +216,9 @@ with col2:
     <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;">
         <div style="font-size:24px;margin-bottom:12px;">📚</div>
-        <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+        <div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         Document library</div>
-        <div style="font-size:12px;color:#666;">
+        <div style="font-size:13px;color:#f1f1f1;">
         Browse and download all generated docs</div>
     </div>
     """, unsafe_allow_html=True)
@@ -231,9 +231,9 @@ with col3:
     <div style="background:#222;border:1px solid #1e1e2e;border-radius:12px;
     padding:20px;">
         <div style="font-size:24px;margin-bottom:12px;">🚀</div>
-        <div style="font-size:15px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+        <div style="font-size:16px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
         Notion publish</div>
-        <div style="font-size:12px;color:#666;">
+        <div style="font-size:13px;color:#f1f1f1;">
         {drafts} documents pending publish</div>
     </div>
     """, unsafe_allow_html=True)
@@ -245,7 +245,7 @@ with col3:
 if documents:
     st.markdown("---")
     st.markdown("""
-    <div style="font-size:11px;font-weight:700;color:#444;
+    <div style="font-size:16px;font-weight:700;color:#d1c7c7;
     letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px;">
     Recent documents</div>
     """, unsafe_allow_html=True)
@@ -260,11 +260,11 @@ if documents:
             st.markdown(f"""
             <div style="background:#222;border:1px solid #1e1e2e;
             border-radius:12px;padding:16px;">
-                <div style="font-size:12px;font-weight:500;color:#e0e0f0;
+                <div style="font-size:15px;font-weight:500;color:#e0e0f0;
                 margin-bottom:6px;line-height:1.4;">{doc['title']}</div>
-                <div style="font-size:11px;color:#666;margin-bottom:10px;">
+                <div style="font-size:12px;color:#f1f1f1;margin-bottom:10px;">
                 {doc['department']} · {doc['document_type']}</div>
-                <div style="display:inline-block;font-size:10px;font-weight:500;
+                <div style="display:inline-block;font-size:13px;font-weight:500;
                 padding:3px 8px;border-radius:20px;
                 background:{status_bg};color:{status_color};">{status_text}</div>
             </div>
