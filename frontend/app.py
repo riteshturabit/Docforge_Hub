@@ -55,12 +55,12 @@ with st.sidebar:
             display:flex;align-items:center;justify-content:center;
             font-size:14px;font-weight:600;color:#fff;">D</div>
             <div>
-                <div style="font-size:14px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
-                <div style="font-size:11px;color:#4040a0;">AI Document Generation System</div>
+                <div style="font-size:17px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
+                <div style="font-size:14px;color:rgb(194 194 255);">AI Document Generation System</div>
             </div>
         </div>
     </div>
-    <div style="font-size:10px;font-weight:600;color:#3a3a5c;letter-spacing:1px;
+    <div style="font-size:12px;font-weight:600;color:rgb(100 100 255);letter-spacing:1px;
     text-transform:uppercase;margin-bottom:8px;padding-left:4px;">Workspace</div>
     """, unsafe_allow_html=True)
     st.page_link("app.py",             label="  Dashboard", icon="⬛")

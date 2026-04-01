@@ -379,7 +379,7 @@ elif st.session_state.step == 3:
         st.markdown(f"""
         <div style="display:flex;align-items:center;
         justify-content:space-between;margin-bottom:12px;">
-            <div style="font-size:14px;font-weight:600;color:#e0e0f0;">
+            <div style="font-size:15px;font-weight:600;color:#e0e0f0;">
             Generated — {st.session_state.section_name}</div>
             <div style="font-size:14px;color:#1D9E75;
             background:rgba(29,158,117,0.12);padding:3px 10px;
