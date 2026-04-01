@@ -39,7 +39,7 @@ with st.sidebar:
         <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:32px;height:32px;border-radius:8px;background:#7F77DD;
             display:flex;align-items:center;justify-content:center;
-            font-size:14px;font-weight:600;color:#fff;">D</div>
+            font-size:16px;font-weight:600;color:#ffffff;">D</div>
             <div>
                 <div style="font-size:17px;font-weight:600;color:#e0e0f0;">DocForge Hub</div>
                 <div style="font-size:14px;color:rgb(194 194 255);">AI Document Generation System</div>
@@ -68,7 +68,7 @@ st.markdown("""
 <div style="padding:24px 0 8px;">
     <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
     Document Library</div>
-    <div style="font-size:13px;color:#666;">
+    <div style="font-size:16px;color:rgb(243 243 243);">
     Browse, download and publish all generated documents.</div>
 </div>
 """, unsafe_allow_html=True)

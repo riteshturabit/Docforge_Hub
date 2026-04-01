@@ -19,7 +19,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 .stButton>button[kind="primary"]{background:#7F77DD!important;border-color:#7F77DD!important;color:#fff!important;}
 [data-testid="stMetric"]{background:#222!important;border:1px solid #2a2a3e!important;border-radius:12px!important;padding:16px 20px!important;}
 [data-testid="stMetricValue"]{font-size:26px!important;font-weight:600!important;color:#e0e0f0!important;}
-[data-testid="stMetricLabel"]{font-size:12px!important;color:#666!important;}
+[data-testid="stMetricLabel"]{font-size:14px!important;color:#ffffff!important;}
 hr{border-color:#1e1e2e!important;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:2px;}
@@ -49,9 +49,9 @@ with st.sidebar:
 
 st.markdown("""
 <div style="padding:24px 0 8px;">
-    <div style="font-size:24px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
-    Notion publish</div>
-    <div style="font-size:13px;color:#666;">
+    <div style="font-size:30px;font-weight:600;color:#e0e0f0;margin-bottom:4px;">
+    Notion Publish</div>
+    <div style="font-size:16px;color:rgb(223 223 223);">
     Publish your documents to your Notion workspace with one click.</div>
 </div>
 """, unsafe_allow_html=True)
@@ -71,7 +71,7 @@ st.markdown("---")
 # Pending 
 st.markdown("""
 <div style="font-size:13px;font-weight:600;color:#e0e0f0;margin-bottom:12px;">
-Pending publish</div>
+Pending Publish</div>
 """, unsafe_allow_html=True)
 
 if not pending:
