@@ -65,7 +65,7 @@ st.markdown("---")
 m1, m2, m3 = st.columns(3)
 m1.metric("Total Documents", len(documents))
 m2.metric("Published", len(published))
-m3.metric("Pending publish", len(pending))
+m3.metric("Pending Publish", len(pending))
 st.markdown("---")
 
 # Pending 
