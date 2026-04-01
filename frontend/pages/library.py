@@ -23,7 +23,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 .stTextInput>div>div>input,.stSelectbox>div>div{background:#222!important;border:1px solid #2a2a3e!important;border-radius:8px!important;color:#e0e0f0!important;font-size:13px!important;}
 [data-testid="stMetric"]{background:#222!important;border:1px solid #2a2a3e!important;border-radius:12px!important;padding:16px 20px!important;}
 [data-testid="stMetricValue"]{font-size:26px!important;font-weight:600!important;color:#e0e0f0!important;}
-[data-testid="stMetricLabel"]{font-size:12px!important;color:#666!important;}
+[data-testid="stMetricLabel"]{font-size:14px!important;color:#ffffff!important;}
 hr{border-color:#1e1e2e!important;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:2px;}
