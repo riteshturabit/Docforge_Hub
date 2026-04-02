@@ -4,7 +4,7 @@ from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.models import GenerateSectionRequest
 from backend.llm import llm, get_memory, save_to_memory
-from backend.routes.versioning import bump_document_version, save_section_version
+from backend.routes.versioning import bump_document_version
 from backend.redis_client import set_job_status, check_rate_limit
 
 router = APIRouter()
@@ -107,6 +107,14 @@ def generate_section(data: GenerateSectionRequest):
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
+    # Quality gate — check answers are not empty
+    filled_answers = [a for a in data.answers if a.answer and a.answer.strip()]
+    if len(filled_answers) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least one answer before generating."
+        )
+
     # Job tracking
     job_id = f"section_{data.document_id}_{data.section_order}"
     set_job_status(job_id, "processing", {
@@ -167,7 +175,7 @@ def generate_section(data: GenerateSectionRequest):
     content = clean_content(content)
     save_to_memory(data.document_id, section_title, content)
 
-    # ── Get current version ───────────────────────────────
+    #  Get current version 
     cursor.execute(
         "SELECT current_version FROM documents WHERE id=%s",
         (data.document_id,)
@@ -175,7 +183,7 @@ def generate_section(data: GenerateSectionRequest):
     ver_row     = cursor.fetchone()
     current_ver = ver_row[0] if ver_row and ver_row[0] else "v1.0"
 
-    # ── Check if section already exists ──────────────────
+    # Check if section already exists 
     cursor.execute(
         """
         SELECT COUNT(*) FROM document_sections
@@ -186,12 +194,11 @@ def generate_section(data: GenerateSectionRequest):
     exists = cursor.fetchone()[0]
 
     if exists:
-        # Bump version since content is being regenerated
         new_ver = bump_document_version(data.document_id)
     else:
         new_ver = current_ver
 
-    # ── Mark old versions as not latest ──────────────────
+    # Mark old versions as not latest 
     cursor.execute(
         """
         UPDATE document_sections
@@ -201,7 +208,7 @@ def generate_section(data: GenerateSectionRequest):
         (data.document_id, data.section_order)
     )
 
-    # ── Insert new version ────────────────────────────────
+    #  Insert new version 
     cursor.execute(
         """
         INSERT INTO document_sections
