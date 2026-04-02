@@ -107,14 +107,6 @@ def generate_section(data: GenerateSectionRequest):
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
-    # Quality gate — check answers are not empty
-    filled_answers = [a for a in data.answers if a.answer and a.answer.strip()]
-    if len(filled_answers) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide at least one answer before generating."
-        )
-
     # Job tracking
     job_id = f"section_{data.document_id}_{data.section_order}"
     set_job_status(job_id, "processing", {
