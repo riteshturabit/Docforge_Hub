@@ -120,8 +120,7 @@ def push_to_notion(document_id: str):
             "Version":     {"rich_text":   [{"type": "text", "text": {"content": str(version)}}]},
             "Tags":        {"multi_select": [{"name": str(department)}]},
             "Created_By":  {"rich_text":   [{"type": "text", "text": {"content": created_by}}]},
-            "Created_at":  {"date":        {"start": str(created_at)}},
-            "Template_ID": {"rich_text":   [{"type": "text", "text": {"content": str(document_id)}}]}
+            "Created_at":  {"date":        {"start": str(created_at)}}
         }
     )
 

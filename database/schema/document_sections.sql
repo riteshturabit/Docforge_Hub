@@ -46,4 +46,4 @@ ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS version VARCHAR(10) DEFAU
 ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS is_latest BOOLEAN DEFAULT TRUE;
 ALTER TABLE document_sections ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
 
-
+SELECT COUNT(*) as sections FROM document_sections;
