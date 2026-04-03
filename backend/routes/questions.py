@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.llm import llm
-from backend.redis_client import check_rate_limit, is_duplicate, set_job_status, get_job_status
+from backend.redis_client import check_rate_limit, is_duplicate, set_job_status
 
 router = APIRouter()
 
