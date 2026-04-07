@@ -10,6 +10,10 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from datetime import datetime
 from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 router = APIRouter()
 
@@ -633,10 +637,10 @@ def download_docx(document_id: str):
 
     doc = Document()
 
-    from docx.shared import Pt, RGBColor, Cm
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
+    # from docx.shared import Pt, RGBColor, Cm
+    # from docx.enum.text import WD_ALIGN_PARAGRAPH
+    # from docx.oxml.ns import qn
+    # from docx.oxml import OxmlElement
 
     # Cover page 
     cover_bar     = doc.add_paragraph()
