@@ -1,3 +1,4 @@
+import logging
 import redis
 import json
 from datetime import datetime, date
@@ -5,6 +6,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
+logger = logging.getLogger("docforge.redis")
 
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST", "localhost"),
@@ -42,15 +45,18 @@ def set_job_status(job_id: str, status: str, meta: dict[str, object] = {}) -> No
         3600,
         to_json(data)
     )
+    logger.debug(f"Job status set | job_id={job_id} | status={status}")
 
 def get_job_status(job_id: str) -> dict[str, object]:
     data = redis_client.get(f"job:{job_id}")
     if data:
         return from_json(data)
+    logger.warning(f"Job not found | job_id={job_id}")
     return {"status": "not_found"}
 
 def delete_job(job_id: str):
     redis_client.delete(f"job:{job_id}")
+    logger.debug(f"Job deleted | job_id={job_id}")
 
 
 # DEDUPLICATION
@@ -62,7 +68,10 @@ def is_duplicate(key: str, ttl: int = 30) -> bool:
         nx=True,
         ex=ttl
     )
-    return result is None
+    is_dup = result is None
+    if is_dup:
+        logger.warning(f"Duplicate request detected | key={key}")
+    return is_dup
 
 def clear_dedup(key: str):
     redis_client.delete(f"dedup:{key}")
@@ -79,8 +88,10 @@ def check_rate_limit(key: str, max_calls: int, window_seconds: int) -> bool:
 
     if int(current) < max_calls:
         redis_client.incr(redis_key)
+        logger.debug(f"Rate limit | key={key} | count={int(current)+1}/{max_calls}")
         return True
 
+    logger.warning(f"Rate limit exceeded | key={key} | count={current}/{max_calls}")
     return False
 
 def get_rate_limit_remaining(key: str, max_calls: int) -> int:
@@ -97,16 +108,19 @@ def cache_set(key: str, data: object, ttl: int = 300) -> None:
         ttl,
         to_json(data)
     )
+    logger.debug(f"Cache SET | key={key} | ttl={ttl}s")
 
 def cache_get(key: str) -> object:
     data = redis_client.get(f"cache:{key}")
     if data:
+        logger.debug(f"Cache HIT | key={key}")
         return from_json(data)
+    logger.debug(f"Cache MISS | key={key}")
     return None
 
 def cache_delete(key: str):
     redis_client.delete(f"cache:{key}")
-
+    logger.debug(f"Cache deleted | key={key}")
 
 
 # HEALTH CHECK
@@ -114,6 +128,8 @@ def cache_delete(key: str):
 def redis_health() -> bool:
     try:
         result = redis_client.ping()
+        logger.info("Redis health check passed")
         return bool(result)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Redis health check failed: {str(e)}")
         return False

@@ -1,4 +1,6 @@
 import json
+import re
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
@@ -6,6 +8,7 @@ from backend.llm import llm
 from backend.redis_client import cache_get, cache_set
 
 router = APIRouter()
+logger = logging.getLogger("docforge.scoring")
 
 SCORING_PROMPT = PromptTemplate(
     input_variables=["document_title", "document_type", "sections_text"],
@@ -56,7 +59,6 @@ def extract_json(text: str) -> dict:
             return json.loads(text[start:end])
     except json.JSONDecodeError:
         pass
-    import re
     try:
         clean = re.sub(r'```(?:json)?', '', text).strip()
         return json.loads(clean)
@@ -67,17 +69,19 @@ def extract_json(text: str) -> dict:
 
 @router.post("/score_document/{document_id}")
 def score_document(document_id: str):
+    logger.info(f"Scoring started | doc={document_id}")
 
-    # Check cache first 
+    # Check cache first
     cache_key = f"score_{document_id}"
     cached    = cache_get(cache_key)
     if cached:
+        logger.debug(f"Score cache HIT | doc={document_id}")
         return cached
 
     conn   = get_connection()
     cursor = conn.cursor()
 
-    # Get document metadata 
+    # Get document metadata
     cursor.execute(
         """
         SELECT
@@ -92,12 +96,13 @@ def score_document(document_id: str):
     )
     meta = cursor.fetchone()
     if not meta:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
 
     document_title = meta[0]
     document_type  = meta[1]
 
-    # Get all sections 
+    # Get all sections
     cursor.execute(
         """
         SELECT DISTINCT ON (section_order)
@@ -133,7 +138,9 @@ def score_document(document_id: str):
             "sections_text":  sections_text
         })
         score_data = extract_json(response.content)
+        logger.info(f"Score calculated | doc={document_id} | score={score_data.get('overall_score')}")
     except Exception as e:
+        logger.error(f"Scoring failed | doc={document_id} | error={str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Scoring failed: {str(e)}"
@@ -154,7 +161,7 @@ def score_document(document_id: str):
             score_data["relevance"]
         )
 
-    # Save to DB 
+    # Save to DB
     breakdown = {
         "completeness":    score_data["completeness"],
         "professionalism": score_data["professionalism"],
@@ -187,22 +194,25 @@ def score_document(document_id: str):
         "grade":           get_grade(score_data["overall_score"])
     }
 
-    # Cache for 1 hour 
+    # Cache for 1 hour
     cache_set(cache_key, result, ttl=3600)
+    logger.info(f"Score saved and cached | doc={document_id} | score={score_data['overall_score']}")
 
     return result
 
 
 @router.get("/score_document/{document_id}")
 def get_score(document_id: str):
+    logger.info(f"Fetching score | doc={document_id}")
 
-    #  Check cache first 
+    # Check cache first
     cache_key = f"score_{document_id}"
     cached    = cache_get(cache_key)
     if cached:
+        logger.debug(f"Score cache HIT | doc={document_id}")
         return cached
 
-    # Fetch from DB 
+    # Fetch from DB
     conn   = get_connection()
     cursor = conn.cursor()
 

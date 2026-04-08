@@ -1,5 +1,7 @@
 import json
 import re
+import hashlib
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
@@ -7,6 +9,7 @@ from backend.llm import llm
 from backend.redis_client import cache_get, cache_set
 
 router = APIRouter()
+logger = logging.getLogger("docforge.suggestions")
 
 SUGGESTIONS_PROMPT = PromptTemplate(
     input_variables=["user_input", "templates_list"],
@@ -71,6 +74,8 @@ def suggest_templates(data: dict):
 
     user_input = data.get("user_input", "").strip()
 
+    logger.info(f"Suggestions requested | input={user_input[:60]}")
+
     if not user_input:
         raise HTTPException(
             status_code=400,
@@ -83,14 +88,14 @@ def suggest_templates(data: dict):
             detail="Please provide more details about your company."
         )
 
-    #  Check cache 
-    import hashlib
+    # Check cache
     cache_key = f"suggestions_{hashlib.md5(user_input.encode()).hexdigest()}"
     cached    = cache_get(cache_key)
     if cached:
+        logger.debug(f"Suggestions cache HIT | key={cache_key}")
         return cached
 
-    # Get all templates from DB 
+    # Get all templates from DB
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -118,7 +123,7 @@ def suggest_templates(data: dict):
         for t in templates
     ])
 
-    # LangChain call 
+    # LangChain call
     chain = SUGGESTIONS_PROMPT | llm
 
     try:
@@ -127,7 +132,9 @@ def suggest_templates(data: dict):
             "templates_list": templates_text
         })
         data_parsed = extract_json(response.content)
+        logger.info("LLM suggestions generated successfully")
     except Exception as e:
+        logger.error(f"Suggestions LLM failed | error={str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Suggestion failed: {str(e)}"
@@ -139,7 +146,7 @@ def suggest_templates(data: dict):
             detail="Invalid response from LLM"
         )
 
-    # Build response 
+    # Build response
     # Get template_id to department_id mapping for frontend navigation
     conn   = get_connection()
     cursor = conn.cursor()
@@ -177,7 +184,8 @@ def suggest_templates(data: dict):
         "total":        len(enriched)
     }
 
-    # Cache for 30 mins 
+    # Cache for 30 mins
     cache_set(cache_key, result, ttl=1800)
+    logger.info(f"Suggestions completed | total={len(enriched)}")
 
     return result

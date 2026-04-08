@@ -1,4 +1,5 @@
 import re
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
@@ -8,6 +9,7 @@ from backend.routes.versioning import bump_document_version
 from backend.redis_client import set_job_status, check_rate_limit
 
 router = APIRouter()
+logger = logging.getLogger("docforge.sections")
 
 
 def clean_content(text: str) -> str:
@@ -95,6 +97,7 @@ Generate complete section covering ALL answers in user format:
 
 @router.post("/generate_section")
 def generate_section(data: GenerateSectionRequest):
+    logger.info(f"Section generation started | doc={data.document_id} | section={data.section_order}")
 
     # Rate limiting
     if not check_rate_limit(
@@ -102,6 +105,7 @@ def generate_section(data: GenerateSectionRequest):
         max_calls=20,
         window_seconds=60
     ):
+        logger.warning(f"Rate limit exceeded | doc={data.document_id}")
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please wait before generating again."
@@ -123,6 +127,7 @@ def generate_section(data: GenerateSectionRequest):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Document not found | doc={data.document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
     template_id = result[0]
 
@@ -135,6 +140,7 @@ def generate_section(data: GenerateSectionRequest):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Section not found | template={template_id} | order={data.section_order}")
         raise HTTPException(status_code=404, detail="Section not found")
     section_title = result[0]
 
@@ -158,7 +164,10 @@ def generate_section(data: GenerateSectionRequest):
             "chat_history":  chat_history or "No previous sections yet."
         })
         content = response.content or "No content generated"
+        logger.info(f"LLM generation successful | doc={data.document_id} | section={section_title}")
     except Exception as e:
+        logger.error(f"LLM generation failed | doc={data.document_id} | error={str(e)}")
+        set_job_status(job_id, "failed", {"error": str(e)})
         raise HTTPException(
             status_code=500,
             detail=f"LLM generation failed: {str(e)}"
@@ -226,6 +235,8 @@ def generate_section(data: GenerateSectionRequest):
         "section_order": data.section_order,
         "section_title": section_title
     })
+
+    logger.info(f"Section saved | doc={data.document_id} | section={section_title} | version={new_ver}")
 
     return {
         "section": section_title,
