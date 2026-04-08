@@ -1,5 +1,6 @@
 import json
 import re
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
@@ -7,6 +8,7 @@ from backend.llm import llm
 from backend.redis_client import check_rate_limit, is_duplicate, set_job_status
 
 router = APIRouter()
+logger = logging.getLogger("docforge.questions")
 
 QUESTIONS_PROMPT = PromptTemplate(
     input_variables=["template_name", "sections"],
@@ -63,23 +65,26 @@ def extract_json(text: str) -> dict:
 
 @router.post("/generate_questions")
 def generate_questions(template_id: int):
-    
-    # ── Rate limiting — max 10 generations per minute ────
+    logger.info(f"Question generation started | template_id={template_id}")
+
+    # Rate limiting — max 10 generations per minute
     if not check_rate_limit(f"generate_questions", max_calls=10, window_seconds=60):
+        logger.warning(f"Rate limit exceeded for question generation")
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please wait before generating again."
         )
 
-    #  Deduplication — prevent double generation
+    # Deduplication — prevent double generation
     dedup_key = f"questions_{template_id}"
     if is_duplicate(dedup_key, ttl=30):
+        logger.warning(f"Duplicate question generation request | template_id={template_id}")
         raise HTTPException(
             status_code=409,
             detail="Questions are already being generated for this template."
         )
 
-    # Job tracking 
+    # Job tracking
     job_id = f"questions_{template_id}"
     set_job_status(job_id, "processing", {"template_id": template_id})
 
@@ -92,6 +97,7 @@ def generate_questions(template_id: int):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Template not found | template_id={template_id}")
         raise HTTPException(status_code=404, detail="Template not found")
     template_name = result[0]
 
@@ -121,9 +127,12 @@ def generate_questions(template_id: int):
                 "sections":      sections_text
             })
             data = extract_json(response.content)
+            logger.info(f"LLM response received | template_id={template_id} | attempt={attempt+1}")
             break
         except Exception as e:
+            logger.warning(f"LLM attempt {attempt+1} failed | template_id={template_id} | error={str(e)}")
             if attempt == max_retries - 1:
+                logger.error(f"Question generation failed after {max_retries} attempts | template_id={template_id}")
                 raise HTTPException(
                     status_code=500,
                     detail=f"LLM failed after {max_retries} attempts: {str(e)}"
@@ -187,6 +196,8 @@ def generate_questions(template_id: int):
         "total_questions": inserted
     })
 
+    logger.info(f"Questions generated successfully | template_id={template_id} | total={inserted}")
+
     return {
         "message":         "Questions generated and stored",
         "total_questions": inserted
@@ -195,6 +206,8 @@ def generate_questions(template_id: int):
 
 @router.get("/next_questions")
 def get_next_questions(document_id: str, section_order: int):
+    logger.info(f"Fetching questions | doc={document_id} | section={section_order}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -204,6 +217,7 @@ def get_next_questions(document_id: str, section_order: int):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
     template_id = result[0]
 
@@ -229,9 +243,9 @@ def get_next_questions(document_id: str, section_order: int):
     cursor.close()
     conn.close()
 
+    logger.info(f"Questions fetched | doc={document_id} | section={section_order} | total={len(questions)}")
+
     return {
         "section":   section[0] if section else "",
         "questions": questions
     }
-
-

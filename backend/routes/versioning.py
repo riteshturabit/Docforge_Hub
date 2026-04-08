@@ -1,8 +1,10 @@
 import re
+import logging
 from fastapi import APIRouter, HTTPException
 from backend.database import get_connection
 
 router = APIRouter()
+logger = logging.getLogger("docforge.versioning")
 
 
 def get_next_version(current_version: str) -> str:
@@ -41,6 +43,8 @@ def bump_document_version(document_id: str) -> str:
     conn.commit()
     cursor.close()
     conn.close()
+
+    logger.info(f"Version bumped | doc={document_id} | {current} → {new_ver}")
     return new_ver
 
 
@@ -75,10 +79,13 @@ def save_section_version(
     conn.commit()
     cursor.close()
     conn.close()
+    logger.debug(f"Section version saved | doc={document_id} | section={section_order} | version={version}")
 
 
 @router.get("/versions/{document_id}/{section_order}")
 def get_section_versions(document_id: str, section_order: int):
+    logger.info(f"Fetching versions | doc={document_id} | section={section_order}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -115,6 +122,8 @@ def get_section_versions(document_id: str, section_order: int):
             "created_at":    row[5].strftime("%B %d, %Y %H:%M") if row[5] else ""
         })
 
+    logger.info(f"Versions fetched | doc={document_id} | section={section_order} | total={len(versions)}")
+
     return {
         "document_id":   document_id,
         "section_order": section_order,
@@ -124,6 +133,8 @@ def get_section_versions(document_id: str, section_order: int):
 
 @router.post("/versions/restore/{document_id}/{section_order}/{section_id}")
 def restore_version(document_id: str, section_order: int, section_id: str):
+    logger.info(f"Restoring version | doc={document_id} | section={section_order} | id={section_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -139,6 +150,7 @@ def restore_version(document_id: str, section_order: int, section_id: str):
     if not row:
         cursor.close()
         conn.close()
+        logger.error(f"Version not found | doc={document_id} | id={section_id}")
         raise HTTPException(status_code=404, detail="Version not found")
 
     sec_title   = row[0]
@@ -168,6 +180,8 @@ def restore_version(document_id: str, section_order: int, section_id: str):
     cursor.close()
     conn.close()
 
+    logger.info(f"Version restored | doc={document_id} | section={section_order} | version={new_ver}")
+
     return {
         "message":       "Version restored successfully",
         "new_version":   new_ver,
@@ -177,6 +191,8 @@ def restore_version(document_id: str, section_order: int, section_id: str):
 
 @router.get("/versions/document/{document_id}")
 def get_document_version(document_id: str):
+    logger.info(f"Fetching document version | doc={document_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -189,6 +205,7 @@ def get_document_version(document_id: str):
     conn.close()
 
     if not row:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
 
     return {

@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from fastapi import APIRouter, HTTPException
 from notion_client import Client
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ from backend.database import get_connection
 load_dotenv()
 
 router = APIRouter()
+logger = logging.getLogger("docforge.notion")
 
 notion = Client(auth=os.getenv("NOTION_TOKEN"))
 DB_ID  = os.getenv("NOTION_DB_ID")
@@ -25,6 +27,7 @@ def notion_create_with_retry(notion, **kwargs):
         except Exception as e:
             if "rate_limited" in str(e).lower() or "429" in str(e):
                 wait = 2 ** attempt
+                logger.warning(f"Notion rate limited | attempt={attempt+1} | waiting={wait}s")
                 time.sleep(wait)
             else:
                 raise e
@@ -41,6 +44,7 @@ def notion_append_with_retry(notion, block_id, children):
         except Exception as e:
             if "rate_limited" in str(e).lower() or "429" in str(e):
                 wait = 2 ** attempt
+                logger.warning(f"Notion append rate limited | attempt={attempt+1} | waiting={wait}s")
                 time.sleep(wait)
             else:
                 raise e
@@ -49,6 +53,8 @@ def notion_append_with_retry(notion, block_id, children):
 
 @router.post("/push_to_notion")
 def push_to_notion(document_id: str):
+    logger.info(f"Notion publish started | doc={document_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -66,6 +72,7 @@ def push_to_notion(document_id: str):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
 
     title      = result[0]
@@ -87,6 +94,7 @@ def push_to_notion(document_id: str):
     )
     sections = cursor.fetchall()
     if not sections:
+        logger.error(f"No sections to publish | doc={document_id}")
         raise HTTPException(status_code=400, detail="No sections to publish")
 
     children = []
@@ -125,6 +133,7 @@ def push_to_notion(document_id: str):
     )
 
     page_id = response["id"]
+    logger.info(f"Notion page created | doc={document_id} | page_id={page_id}")
 
     for block_chunk in chunk_blocks(children):
         notion_append_with_retry(notion, block_id=page_id, children=block_chunk)
@@ -137,6 +146,8 @@ def push_to_notion(document_id: str):
     conn.commit()
     cursor.close()
     conn.close()
+
+    logger.info(f"Notion publish completed | doc={document_id} | title={title}")
 
     return {
         "message":        "Published to Notion",

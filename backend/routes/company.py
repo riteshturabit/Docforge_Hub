@@ -1,11 +1,15 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from backend.database import get_connection
 from backend.models import CompanyContext
 
 router = APIRouter()
+logger = logging.getLogger("docforge.company")
 
 @router.post("/company-context")
 def save_company_context(data: CompanyContext):
+    logger.info(f"Saving company context | name={data.company_name}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -32,11 +36,15 @@ def save_company_context(data: CompanyContext):
     conn.commit()
     cursor.close()
     conn.close()
+
+    logger.info(f"Company context saved | company_id={company_id} | name={data.company_name}")
     return {"company_id": company_id}
 
 
 @router.get("/company-context/{company_id}")
 def get_company_context(company_id: int):
+    logger.info(f"Fetching company context | company_id={company_id}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -52,9 +60,12 @@ def get_company_context(company_id: int):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Company context not found | company_id={company_id}")
         raise HTTPException(status_code=404, detail="Company context not found")
     cursor.close()
     conn.close()
+
+    logger.info(f"Company context fetched | company_id={company_id}")
     return {
         "id": result[0],
         "company_name": result[1],

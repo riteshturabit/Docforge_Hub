@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
@@ -5,6 +6,7 @@ from backend.llm import llm
 from backend.routes.versioning import bump_document_version
 
 router = APIRouter()
+logger = logging.getLogger("docforge.enhance")
 
 ACTION_MAP = {
     "longer":   "Make the content more detailed and comprehensive",
@@ -82,6 +84,8 @@ def enhance_section(data: dict):
     action             = data.get("action")
     custom_instruction = data.get("custom_instruction", "")
 
+    logger.info(f"Enhancement started | doc={document_id} | action={action} | section={section_order}")
+
     if not document_id:
         raise HTTPException(status_code=400, detail="document_id required")
 
@@ -101,6 +105,7 @@ def enhance_section(data: dict):
         if not section:
             cursor.close()
             conn.close()
+            logger.error(f"Section not found | doc={document_id} | section={section_order}")
             raise HTTPException(status_code=404, detail="Section not found")
 
         section_title, content = section
@@ -114,9 +119,11 @@ def enhance_section(data: dict):
                 "custom_instruction": custom_instruction
             })
             enhanced = response.content or ""
+            logger.info(f"Section enhanced | doc={document_id} | section={section_title}")
         except Exception as e:
             cursor.close()
             conn.close()
+            logger.error(f"Enhancement failed | doc={document_id} | error={str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Enhancement failed: {str(e)}"
@@ -143,6 +150,7 @@ def enhance_section(data: dict):
         if not sections:
             cursor.close()
             conn.close()
+            logger.error(f"Document empty | doc={document_id}")
             raise HTTPException(status_code=404, detail="Document empty")
 
         full_text = "\n\n".join(
@@ -157,9 +165,11 @@ def enhance_section(data: dict):
                 "full_text":          full_text
             })
             enhanced = response.content or ""
+            logger.info(f"Full document enhanced | doc={document_id}")
         except Exception as e:
             cursor.close()
             conn.close()
+            logger.error(f"Document enhancement failed | doc={document_id} | error={str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Enhancement failed: {str(e)}"
@@ -179,6 +189,8 @@ def save_enhanced_section(data: dict):
     section_order = data.get("section_order")
     content       = data.get("content")
 
+    logger.info(f"Saving enhanced section | doc={document_id} | section={section_order}")
+
     if not document_id or section_order is None or not content:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
@@ -195,6 +207,7 @@ def save_enhanced_section(data: dict):
     if not row:
         cursor.close()
         conn.close()
+        logger.error(f"Section not found for save | doc={document_id} | section={section_order}")
         raise HTTPException(status_code=404, detail="Section not found")
 
     section_title = row[0]
@@ -226,6 +239,8 @@ def save_enhanced_section(data: dict):
     conn.commit()
     cursor.close()
     conn.close()
+
+    logger.info(f"Enhanced section saved | doc={document_id} | section={section_title} | version={new_ver}")
 
     return {
         "message":     "Section updated successfully",

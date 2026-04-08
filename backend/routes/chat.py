@@ -1,11 +1,13 @@
 #import json
 import re
+import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.llm import llm
 
 router = APIRouter()
+logger = logging.getLogger("docforge.chat")
 
 
 def clean_chat_response(text: str) -> str:
@@ -78,9 +80,11 @@ Answer:
 
 @router.post("/chat_document")
 def chat_document(data: dict[str, object]) -> dict[str, str]:
-    document_id  = data.get("document_id")
+    document_id   = data.get("document_id")
     user_question = data.get("question", "").strip()
     chat_history  = data.get("chat_history", [])
+
+    logger.info(f"Chat request | doc={document_id} | question={str(user_question)[:60]}")
 
     if not document_id:
         raise HTTPException(status_code=400, detail="document_id required")
@@ -101,6 +105,7 @@ def chat_document(data: dict[str, object]) -> dict[str, str]:
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
     document_title = result[0]
 
@@ -157,7 +162,9 @@ def chat_document(data: dict[str, object]) -> dict[str, str]:
             str(raw_content) if not isinstance(raw_content, str)
             else raw_content or "I could not generate an answer. Please try again."
         )
+        logger.info(f"Chat response generated | doc={document_id}")
     except Exception as e:
+        logger.error(f"Chat failed | doc={document_id} | error={str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Chat failed: {str(e)}"

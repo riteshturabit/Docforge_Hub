@@ -1,12 +1,16 @@
 import uuid
+import logging
 from fastapi import APIRouter, HTTPException
 from backend.database import get_connection
 
 router = APIRouter()
+logger = logging.getLogger("docforge.documents")
 
 
 @router.post("/create-document")
 def create_document(template_id: int, company_id: int):
+    logger.info(f"Creating document | template_id={template_id} | company_id={company_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -16,6 +20,7 @@ def create_document(template_id: int, company_id: int):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Template not found | template_id={template_id}")
         raise HTTPException(status_code=404, detail="Template not found")
 
     template_name = result[0]
@@ -31,11 +36,15 @@ def create_document(template_id: int, company_id: int):
     conn.commit()
     cursor.close()
     conn.close()
+
+    logger.info(f"Document created | document_id={document_id} | title={template_name}")
     return {"document_id": document_id, "title": template_name}
 
 
 @router.get("/documents")
 def get_all_documents(department_id: int = None):
+    logger.info(f"Fetching all documents | department_id={department_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -87,11 +96,14 @@ def get_all_documents(department_id: int = None):
             "quality_score":  row[11]
         })
 
+    logger.info(f"Documents fetched | total={len(documents)}")
     return {"total": len(documents), "documents": documents}
 
 
 @router.get("/document/{document_id}")
 def get_document(document_id: str):
+    logger.info(f"Fetching document | doc={document_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -112,6 +124,7 @@ def get_document(document_id: str):
     )
     meta = cursor.fetchone()
     if not meta:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
 
     cursor.execute(
@@ -127,6 +140,8 @@ def get_document(document_id: str):
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
+
+    logger.info(f"Document fetched | doc={document_id} | sections={len(rows)}")
 
     return {
         "id":             document_id,
@@ -149,6 +164,8 @@ def get_document(document_id: str):
 
 @router.get("/progress/{document_id}")
 def get_progress(document_id: str):
+    logger.info(f"Fetching progress | doc={document_id}")
+
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -158,6 +175,7 @@ def get_progress(document_id: str):
     )
     result = cursor.fetchone()
     if not result:
+        logger.error(f"Document not found | doc={document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
     template_id = result[0]
 
@@ -182,6 +200,8 @@ def get_progress(document_id: str):
 
     cursor.close()
     conn.close()
+
+    logger.info(f"Progress fetched | doc={document_id} | {completed_sections}/{total_sections}")
 
     return {
         "completed_sections": completed_sections,
