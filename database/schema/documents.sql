@@ -51,3 +51,6 @@ WHERE d.id = '5470c216-550b-405b-ae0c-f779d0dc2e0b';
 ALTER TABLE documents
 ADD COLUMN quality_score INT DEFAULT NULL,
 ADD COLUMN score_breakdown JSONB DEFAULT NULL;
+
+DELETE FROM documents;
+SELECT COUNT(*) FROM documents;
