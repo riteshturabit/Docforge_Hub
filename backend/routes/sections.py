@@ -1,36 +1,15 @@
-import re
 import logging
 from fastapi import APIRouter, HTTPException
 from langchain_core.prompts import PromptTemplate
 from backend.database import get_connection
 from backend.models import GenerateSectionRequest
 from backend.llm import llm, get_memory, save_to_memory
-from backend.routes.versioning import bump_document_version
+from backend.utils.version_helper import bump_document_version
+from backend.utils.text_cleaner import clean_content
 from backend.redis_client import set_job_status, check_rate_limit
 
 router = APIRouter()
 logger = logging.getLogger("docforge.sections")
-
-
-def clean_content(text: str) -> str:
-    text = re.sub(r'#{1,6}\s*', '', text)
-    text = re.sub(r'(?<!\*)\*(?!\*)(?!\*)\s+', '• ', text, flags=re.MULTILINE)
-    text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
-    text = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', text)
-    text = re.sub(r'\|[-:\s|]+\|', '', text)
-    lines = text.split('\n')
-    cleaned = []
-    for line in lines:
-        if line.strip().startswith('|') and line.strip().endswith('|'):
-            cells = [c.strip() for c in line.strip().strip('|').split('|')]
-            cells = [c for c in cells if c]
-            cleaned.append('  |  '.join(cells))
-        else:
-            cleaned.append(line)
-    text = '\n'.join(cleaned)
-    text = re.sub(r'^\s*[*]\s+', '• ', text, flags=re.MULTILINE)
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    return text.strip()
 
 
 SECTION_PROMPT = PromptTemplate(
@@ -101,7 +80,10 @@ Generate complete section covering ALL answers in user format:
 
 @router.post("/generate_section")
 def generate_section(data: GenerateSectionRequest):
-    logger.info(f"Section generation started | doc={data.document_id} | section={data.section_order}")
+    logger.info(
+        f"Section generation started | "
+        f"doc={data.document_id} | section={data.section_order}"
+    )
 
     # Rate limiting
     if not check_rate_limit(
@@ -125,125 +107,146 @@ def generate_section(data: GenerateSectionRequest):
     conn   = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT template_id FROM documents WHERE id=%s",
-        (data.document_id,)
-    )
-    result = cursor.fetchone()
-    if not result:
-        logger.error(f"Document not found | doc={data.document_id}")
-        raise HTTPException(status_code=404, detail="Document not found")
-    template_id = result[0]
-
-    cursor.execute(
-        """
-        SELECT section_title FROM template_sections
-        WHERE template_id=%s AND section_order=%s
-        """,
-        (template_id, data.section_order)
-    )
-    result = cursor.fetchone()
-    if not result:
-        logger.error(f"Section not found | template={template_id} | order={data.section_order}")
-        raise HTTPException(status_code=404, detail="Section not found")
-    section_title = result[0]
-
-    answers_text = "\n".join(
-        [f"{a.question}: {a.answer}" for a in data.answers]
-    )
-
-    memory       = get_memory(data.document_id)
-    chat_history = ""
-    messages     = memory.messages
-    if messages:
-        recent_messages = messages[-4:]
-        chat_history    = "\n".join([m.content for m in recent_messages])
-
-    chain = SECTION_PROMPT | llm
-
     try:
-        response = chain.invoke({
-            "section_title": section_title,
-            "answers_text":  answers_text,
-            "chat_history":  chat_history or "No previous sections yet."
+        cursor.execute(
+            "SELECT template_id FROM documents WHERE id=%s",
+            (data.document_id,)
+        )
+        result = cursor.fetchone()
+        if not result:
+            logger.error(f"Document not found | doc={data.document_id}")
+            raise HTTPException(status_code=404, detail="Document not found")
+        template_id = result[0]
+
+        cursor.execute(
+            """
+            SELECT section_title FROM template_sections
+            WHERE template_id=%s AND section_order=%s
+            """,
+            (template_id, data.section_order)
+        )
+        result = cursor.fetchone()
+        if not result:
+            logger.error(
+                f"Section not found | "
+                f"template={template_id} | order={data.section_order}"
+            )
+            raise HTTPException(status_code=404, detail="Section not found")
+        section_title = result[0]
+
+        answers_text = "\n".join(
+            [f"{a.question}: {a.answer}" for a in data.answers]
+        )
+
+        memory       = get_memory(data.document_id)
+        chat_history = ""
+        messages     = memory.messages
+        if messages:
+            recent_messages = messages[-4:]
+            chat_history    = "\n".join([m.content for m in recent_messages])
+
+        chain = SECTION_PROMPT | llm
+
+        try:
+            response = chain.invoke({
+                "section_title": section_title,
+                "answers_text":  answers_text,
+                "chat_history":  chat_history or "No previous sections yet."
+            })
+            content = response.content or "No content generated"
+            logger.info(
+                f"LLM generation successful | "
+                f"doc={data.document_id} | section={section_title}"
+            )
+        except Exception as e:
+            logger.error(
+                f"LLM generation failed | "
+                f"doc={data.document_id} | error={str(e)}"
+            )
+            set_job_status(job_id, "failed", {"error": str(e)})
+            raise HTTPException(
+                status_code=500,
+                detail=f"LLM generation failed: {str(e)}"
+            )
+
+        content = clean_content(content)
+        save_to_memory(data.document_id, section_title, content)
+
+        # Get current version
+        cursor.execute(
+            "SELECT current_version FROM documents WHERE id=%s",
+            (data.document_id,)
+        )
+        ver_row     = cursor.fetchone()
+        current_ver = ver_row[0] if ver_row and ver_row[0] else "v1.0"
+
+        # Check if section already exists
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM document_sections
+            WHERE document_id=%s AND section_order=%s
+            """,
+            (data.document_id, data.section_order)
+        )
+        exists = cursor.fetchone()[0]
+
+        if exists:
+            new_ver = bump_document_version(data.document_id)
+        else:
+            new_ver = current_ver
+
+        # Mark old versions as not latest
+        cursor.execute(
+            """
+            UPDATE document_sections
+            SET is_latest = FALSE
+            WHERE document_id=%s AND section_order=%s
+            """,
+            (data.document_id, data.section_order)
+        )
+
+        # Insert new version
+        cursor.execute(
+            """
+            INSERT INTO document_sections
+            (document_id, section_title, section_content,
+             section_order, version, is_latest, is_completed)
+            VALUES (%s, %s, %s, %s, %s, TRUE, TRUE)
+            """,
+            (
+                data.document_id,
+                section_title,
+                content,
+                data.section_order,
+                new_ver
+            )
+        )
+
+        conn.commit()
+
+        set_job_status(job_id, "completed", {
+            "document_id":   data.document_id,
+            "section_order": data.section_order,
+            "section_title": section_title
         })
-        content = response.content or "No content generated"
-        logger.info(f"LLM generation successful | doc={data.document_id} | section={section_title}")
+
+        logger.info(
+            f"Section saved | doc={data.document_id} | "
+            f"section={section_title} | version={new_ver}"
+        )
+
+        return {
+            "section": section_title,
+            "content": content,
+            "version": new_ver
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"LLM generation failed | doc={data.document_id} | error={str(e)}")
-        set_job_status(job_id, "failed", {"error": str(e)})
-        raise HTTPException(
-            status_code=500,
-            detail=f"LLM generation failed: {str(e)}"
-        )
-
-    content = clean_content(content)
-    save_to_memory(data.document_id, section_title, content)
-
-    #  Get current version 
-    cursor.execute(
-        "SELECT current_version FROM documents WHERE id=%s",
-        (data.document_id,)
-    )
-    ver_row     = cursor.fetchone()
-    current_ver = ver_row[0] if ver_row and ver_row[0] else "v1.0"
-
-    # Check if section already exists 
-    cursor.execute(
-        """
-        SELECT COUNT(*) FROM document_sections
-        WHERE document_id=%s AND section_order=%s
-        """,
-        (data.document_id, data.section_order)
-    )
-    exists = cursor.fetchone()[0]
-
-    if exists:
-        new_ver = bump_document_version(data.document_id)
-    else:
-        new_ver = current_ver
-
-    # Mark old versions as not latest 
-    cursor.execute(
-        """
-        UPDATE document_sections
-        SET is_latest = FALSE
-        WHERE document_id=%s AND section_order=%s
-        """,
-        (data.document_id, data.section_order)
-    )
-
-    #  Insert new version 
-    cursor.execute(
-        """
-        INSERT INTO document_sections
-        (document_id, section_title, section_content,
-         section_order, version, is_latest, is_completed)
-        VALUES (%s, %s, %s, %s, %s, TRUE, TRUE)
-        """,
-        (
-            data.document_id,
-            section_title,
-            content,
-            data.section_order,
-            new_ver
-        )
-    )
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    set_job_status(job_id, "completed", {
-        "document_id":   data.document_id,
-        "section_order": data.section_order,
-        "section_title": section_title
-    })
-
-    logger.info(f"Section saved | doc={data.document_id} | section={section_title} | version={new_ver}")
-
-    return {
-        "section": section_title,
-        "content": content,
-        "version": new_ver
-    }
+        logger.error(f"Unexpected error | doc={data.document_id} | {e}")
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
