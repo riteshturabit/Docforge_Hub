@@ -14,4 +14,3 @@ CREATE TABLE company_context (
 DELETE FROM company_context;
 
 SELECT COUNT(*) FROM company_context;
-DELETE FROM company_context;
