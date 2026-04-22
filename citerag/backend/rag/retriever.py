@@ -4,7 +4,6 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    Must
 )
 from citerag.backend.llm import embeddings
 from citerag.backend.constants import (
@@ -24,14 +23,6 @@ client = QdrantClient(
 
 
 def build_qdrant_filter(filters: dict) -> Filter:
-    """
-    Build Qdrant filter from metadata dict
-    Supports: industry, doc_type, version filtering
-
-    Example:
-    filters = {"industry": "FinTech", "doc_type": "SOP"}
-    → Only search FinTech SOP documents!
-    """
     if not filters:
         return None
 
@@ -77,26 +68,18 @@ def retrieve_chunks(
     top_k:   int  = DEFAULT_TOP_K,
     filters: dict = None
 ) -> list:
-    """
-    Retrieve top-k relevant chunks from Qdrant
-
-    Returns list of chunks with:
-    → score       = cosine similarity (0 to 1)
-    → confidence  = score as percentage (0 to 100)
-    → all metadata from payload
-    """
     try:
-        query_vector   = embeddings.embed_query(query)
-        qdrant_filter  = build_qdrant_filter(filters)
+        query_vector  = embeddings.embed_query(query)
+        qdrant_filter = build_qdrant_filter(filters)
 
-        results = client.search(
+        results = client.query_points(
             collection_name=QDRANT_COLLECTION,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             query_filter=qdrant_filter,
             with_payload=True,
             with_vectors=False
-        )
+        ).points
 
         chunks = []
         for r in results:
@@ -131,21 +114,13 @@ def retrieve_for_compare(
     query:       str,
     top_k:       int = 3
 ) -> dict:
-    """
-    Retrieve chunks from TWO specific documents
-    Used by compare tool
-
-    Returns:
-    → doc1: list of chunks from document 1
-    → doc2: list of chunks from document 2
-    """
     try:
         query_vector = embeddings.embed_query(query)
 
         def fetch_doc(title: str) -> list:
-            results = client.search(
+            results = client.query_points(
                 collection_name=QDRANT_COLLECTION,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=top_k,
                 query_filter=Filter(
                     must=[
@@ -157,7 +132,7 @@ def retrieve_for_compare(
                 ),
                 with_payload=True,
                 with_vectors=False
-            )
+            ).points
             return [{
                 "doc_title":     r.payload.get("doc_title", ""),
                 "section_title": r.payload.get("section_title", ""),
@@ -187,11 +162,6 @@ def check_evidence_strength(
     chunks:    list,
     threshold: float = MIN_CONFIDENCE
 ) -> bool:
-    """
-    Anti-hallucination check!
-    Returns False if no chunks have sufficient confidence
-    → System will say "I don't know" instead of making up answer
-    """
     if not chunks:
         return False
 

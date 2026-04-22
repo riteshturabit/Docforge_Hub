@@ -12,7 +12,7 @@ RATE_LIMIT_WINDOW     = 60      # window in seconds
 QDRANT_HOST           = "localhost"
 QDRANT_PORT           = 6333
 QDRANT_COLLECTION     = "citerag_docs"
-VECTOR_SIZE           = 1536    # text-embedding-3-small
+VECTOR_SIZE           = 3072    # text-embedding-3-large
 
 # RAG 
 DEFAULT_TOP_K         = 5       # default chunks to retrieve

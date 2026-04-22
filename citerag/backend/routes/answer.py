@@ -137,8 +137,14 @@ def answer_question(data: AnswerRequest):
                 """
                 INSERT INTO citerag_sessions
                 (session_id, question, answer,
-                 citations, confidence, filters_used)
+                citations, confidence, filters_used)
                 VALUES (%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (session_id) DO UPDATE SET
+                    question     = EXCLUDED.question,
+                    answer       = EXCLUDED.answer,
+                    citations    = EXCLUDED.citations,
+                    confidence   = EXCLUDED.confidence,
+                    filters_used = EXCLUDED.filters_used
                 """,
                 (
                     data.session_id,

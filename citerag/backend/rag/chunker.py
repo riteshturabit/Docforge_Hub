@@ -12,26 +12,44 @@ logger = logging.getLogger("citerag.chunker")
 
 def get_notion_pages(database_id: str) -> list:
     """
-    Fetch all published pages from Notion database
-    Handles pagination automatically
+    Fetch all pages from Notion database
+    Compatible with notion-client 3.0.0
     """
     try:
-        pages  = []
-        cursor = None
+        pages     = []
+        cursor    = None
+        clean_db  = database_id.replace("-", "")
 
         while True:
-            kwargs = {"database_id": database_id}
+            kwargs = {
+                "filter":    {"value": "page", "property": "object"},
+                "page_size": 100
+            }
             if cursor:
                 kwargs["start_cursor"] = cursor
 
-            response = notion.databases.query(**kwargs)
-            pages.extend(response["results"])
+            response = notion.search(**kwargs)
+            results  = response.get("results", [])
 
-            if not response["has_more"]:
+            for page in results:
+                parent   = page.get("parent", {})
+                # Check database_id directly in parent
+                # regardless of parent type
+                page_db  = parent.get(
+                    "database_id", ""
+                ).replace("-", "")
+
+                if page_db == clean_db:
+                    pages.append(page)
+
+            if not response.get("has_more"):
                 break
-            cursor = response["next_cursor"]
+            cursor = response.get("next_cursor")
 
-        logger.info(f"Fetched {len(pages)} pages | db={database_id}")
+        logger.info(
+            f"Fetched {len(pages)} pages | "
+            f"db={database_id}"
+        )
         return pages
 
     except Exception as e:

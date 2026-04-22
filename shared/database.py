@@ -4,7 +4,7 @@ import psycopg2
 from psycopg2 import pool
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv()  # ← THIS WAS MISSING!
 
 logger = logging.getLogger("shared.database")
 
@@ -20,9 +20,9 @@ def get_pool():
             maxconn=20,
             host=os.getenv("DB_HOST", "localhost"),
             port=os.getenv("DB_PORT", 5432),
-            database=os.getenv("DB_NAME", "docforge"),
+            database=os.getenv("DB_NAME", "DocForge_Hub"),
             user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD")
+            password=os.getenv("DB_PASSWORD", "postgres123")
         )
         logger.info("Database connection pool created")
     return _pool
