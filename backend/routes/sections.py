@@ -32,7 +32,7 @@ Generation rules:
 2. For each question:
    - Extract 1 to 3 key words from the question that best describe the topic
    - Use those key words as a bold sub-heading title for that answer
-   - Generate 2 to 3 bullet points for that answer only
+   - Generate EXACTLY 2 bullet points for that answer only
    - Each bullet point should be 2 to 3 lines long
    - Content must be strictly based on the user answer provided
    - Do not add random content not mentioned in the answer
@@ -40,7 +40,7 @@ Generation rules:
 
 3. If no answer is provided for a question:
    - Still generate the bold sub-heading from question keywords
-   - Generate 2 to 3 relevant professional bullet points based on the question
+   - Generate EXACTLY 2 relevant professional bullet points
 
 4. Output format for each question:
 
@@ -50,10 +50,9 @@ Generation rules:
   and professional language appropriate for enterprise documentation
 - **Bold Label:** Another specific point from the answer with 2 to 3 lines
   of professional content directly related to what the user answered
-- **Bold Label:** Third point if needed based on answer depth and content
-  requirements of the question asked
 
 5. Bullet point rules:
+   - EXACTLY 2 bullets per question — never 1 never 3
    - Every bullet must start with a bold label of 1 to 3 words
    - Label must be extracted from the answer content itself
    - Description after colon must be 2 to 3 lines long
@@ -65,7 +64,7 @@ Generation rules:
    - Example: "What is the review process?" → **Review Process**
    - Example: "Who are the reviewers?" → **Reviewers**
    - Example: "How is feedback tracked?" → **Feedback Tracking**
-   - Sub-heading must be bold using ** **
+   - Sub-heading MUST be bold using ** ** on both sides
    - No colon after sub-heading
    - One blank line before each sub-heading
 
@@ -76,7 +75,7 @@ Generation rules:
    - Markdown headers using ## or #
    - Any preamble or introduction before content
    - Any conclusion or summary after content
-   - More than 3 bullets per question
+   - More than 2 bullets per question
    - More than 3 lines per bullet point
 
 Example of correct output:
