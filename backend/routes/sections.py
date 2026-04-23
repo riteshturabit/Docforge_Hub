@@ -16,7 +16,7 @@ SECTION_PROMPT = PromptTemplate(
     input_variables=["section_title", "answers_text", "chat_history"],
     template="""
 You are an enterprise documentation writer for Indian B2B companies.
-Generate professional business document content based on the answers provided.
+Generate professional business document content strictly based on the answers provided.
 
 Previous sections context:
 {chat_history}
@@ -28,73 +28,84 @@ User Answers:
 
 Generation rules:
 
-1. If user answers are provided:
-   - Generate content strictly based on the user answers only
-   - Do not add generic content or filler text
-   - Do not add introductory labels like "Purpose:" or "Overview:" at the start
-   - Generate content that directly answers each question
-   - Keep content specific to the company and context mentioned in answers
+1. Process each question and answer one by one separately
+2. For each question:
+   - Extract 1 to 3 key words from the question that best describe the topic
+   - Use those key words as a bold sub-heading title for that answer
+   - Generate 2 to 3 bullet points for that answer only
+   - Each bullet point should be 2 to 3 lines long
+   - Content must be strictly based on the user answer provided
+   - Do not add random content not mentioned in the answer
+   - Do not mix content from different questions
 
-2. If no answers are provided:
-   - Generate professional content based on the section title
-   - Use Indian B2B enterprise best practices
-   - Keep content specific and actionable
+3. If no answer is provided for a question:
+   - Still generate the bold sub-heading from question keywords
+   - Generate 2 to 3 relevant professional bullet points based on the question
 
-3. Output format — follow this exact structure:
+4. Output format for each question:
 
-   For each question or topic, generate a sub-heading followed by bullet points:
+**Sub-heading Title From Question Keywords**
+- **Bold Label:** Detailed description here spanning 2 to 3 lines covering
+  the specific point mentioned in the user answer with relevant context
+  and professional language appropriate for enterprise documentation
+- **Bold Label:** Another specific point from the answer with 2 to 3 lines
+  of professional content directly related to what the user answered
+- **Bold Label:** Third point if needed based on answer depth and content
+  requirements of the question asked
 
-   Sub-heading Title
-   • **Bold Label:** Description of the point here with specific details
-   • **Bold Label:** Description of the point here with specific details
-   • **Bold Label:** Description of the point here with specific details
-   • **Bold Label:** Description of the point here with specific details
+5. Bullet point rules:
+   - Every bullet must start with a bold label of 1 to 3 words
+   - Label must be extracted from the answer content itself
+   - Description after colon must be 2 to 3 lines long
+   - Content must be strictly from user answer — no random additions
+   - Do not repeat same point in different bullets
 
-   Rules for bullet points:
-   - Minimum 4 bullet points per sub-section
-   - Maximum 6 bullet points per sub-section
-   - Every bullet point must have a bold label before the colon
-   - Label must be 1-3 words describing the point
-   - Description after colon must be specific and detailed
-   - No generic filler content like "This section covers..."
-   - No introductory sentences before bullet points
-   - No concluding sentences after bullet points
+6. Sub-heading rules:
+   - Extract the core topic words from the question
+   - Example: "What is the review process?" → **Review Process**
+   - Example: "Who are the reviewers?" → **Reviewers**
+   - Example: "How is feedback tracked?" → **Feedback Tracking**
+   - Sub-heading must be bold using ** **
+   - No colon after sub-heading
+   - One blank line before each sub-heading
 
-4. For tables — if user answer has tabular data:
-   | Column 1 | Column 2 | Column 3 |
-   |---|---|---|
-   | Value 1  | Value 2  | Value 3  |
-
-5. Bold and underline rules:
-   - Bold using ** **: key terms, names, deadlines, numbers
-   - Underline using __ __: warnings, mandatory items only
-   - Do not overuse — maximum 2 bold items per bullet
-
-6. Never include:
-   - The word "Purpose:" as a label at start of any bullet
-   - The word "Overview:" as a label at start of any bullet
+7. Never include:
+   - The words "Purpose:" or "Overview:" as bullet labels
+   - Generic filler content not from user answers
    - Questions in the output
-   - Markdown headers using ##
-   - Any preamble before the content
-   - Any closing remarks after the content
-   - Generic sentences like "This document covers..."
-   - Any content not related to the user answers
+   - Markdown headers using ## or #
+   - Any preamble or introduction before content
+   - Any conclusion or summary after content
+   - More than 3 bullets per question
+   - More than 3 lines per bullet point
 
-Example of correct output format:
+Example of correct output:
 
-Review Process
-- **RFC Submission:** Architect submits formal Request for Comments document to engineering leadership team
-- **Review Period:** Minimum 5 working day review period allowing all stakeholders to provide written feedback
-- **Architecture Review Board:** Dedicated ARB meeting conducted with CTO, Tech Leads and senior engineers
-- **Final Approval:** CTO provides final written approval before any significant architectural changes implemented
+**Review Process**
+- **RFC Submission:** Architect submits formal Request for Comments
+  document to engineering leadership team for structured review
+  before any significant architectural changes are implemented
+- **Review Period:** Minimum 5 working day review period allowing all
+  stakeholders to provide written feedback on the proposed changes
+  ensuring comprehensive evaluation before final decision
 
-Reviewers
-- **CTO:** Reviews overall strategic alignment, scalability approach and technology stack decisions
-- **Tech Leads:** Evaluate technical feasibility, implementation complexity and team capability requirements
-- **Security Engineer:** Reviews all security controls, data protection measures and compliance requirements
-- **DevOps Lead:** Assesses deployment strategy, infrastructure requirements and operational complexity
+**Reviewers**
+- **CTO:** Reviews overall strategic alignment, scalability approach
+  and technology stack decisions ensuring alignment with company
+  vision and long term technical roadmap
+- **Tech Leads:** Evaluate technical feasibility, implementation
+  complexity and team capability requirements for proposed changes
+  providing detailed feedback from engineering perspective
 
-Generate the section content now following the exact format above:
+**Feedback Tracking**
+- **GitHub Discussions:** All architecture feedback recorded as GitHub
+  discussions on RFC pull request maintaining full audit trail
+  of all comments and decisions made during review process
+- **Decision Log:** Significant decisions and rejected alternatives
+  documented in Architecture Decision Records for future reference
+  and organizational knowledge preservation
+
+Generate the section content now following exact format above:
 """
 )
 
@@ -155,28 +166,26 @@ def generate_section(data: GenerateSectionRequest):
             raise HTTPException(status_code=404, detail="Section not found")
         section_title = result[0]
 
-        # Handle empty answers gracefully
+        # Build answers text question by question
         if data.answers and len(data.answers) > 0:
-            filled_answers = [
-                a for a in data.answers
-                if a.answer and a.answer.strip()
-            ]
-            if filled_answers:
-                answers_text = "\n".join(
-                    [
-                        f"Question: {a.question}\nAnswer: {a.answer}"
-                        for a in filled_answers
-                    ]
-                )
-            else:
-                answers_text = (
-                    f"No answers provided. "
-                    f"Generate professional content for section: {section_title}"
-                )
+            qa_parts = []
+            for i, a in enumerate(data.answers, 1):
+                answer_text = a.answer.strip() if a.answer else ""
+                if answer_text:
+                    qa_parts.append(
+                        f"Question {i}: {a.question}\n"
+                        f"Answer {i}: {answer_text}"
+                    )
+                else:
+                    qa_parts.append(
+                        f"Question {i}: {a.question}\n"
+                        f"Answer {i}: No answer provided"
+                    )
+            answers_text = "\n\n".join(qa_parts)
         else:
             answers_text = (
                 f"No answers provided. "
-                f"Generate professional content for section: {section_title}"
+                f"Generate professional content for: {section_title}"
             )
 
         memory       = get_memory(data.document_id)
