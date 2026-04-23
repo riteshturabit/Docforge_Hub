@@ -15,9 +15,8 @@ logger = logging.getLogger("docforge.sections")
 SECTION_PROMPT = PromptTemplate(
     input_variables=["section_title", "answers_text", "chat_history"],
     template="""
-You are an enterprise documentation assistant helping Indian B2B companies
-create professional business documents. Generate formal, professional,
-business-appropriate content for internal corporate documentation.
+You are an enterprise documentation writer for Indian B2B companies.
+Generate professional business document content based on the answers provided.
 
 Previous sections context:
 {chat_history}
@@ -27,48 +26,75 @@ Current Section: {section_title}
 User Answers:
 {answers_text}
 
-Instructions for generating this section:
-1. Cover every answer provided — do not skip any point
-2. Do not include questions in the output — only the answers
-3. Combine all answers into one flowing professional section
-4. Keep all content professional and business-appropriate
-5. If no answers are provided, generate a standard professional
-   section based on the section title and industry best practices
+Generation rules:
 
-Formatting guidelines:
-1. Detect the format of each user answer and match it:
-   - If user wrote bullet points, use the bullet symbol
-   - If user wrote a table format, generate a proper pipe table
-   - If user wrote paragraphs, split into chunks of 4 lines each
+1. If user answers are provided:
+   - Generate content strictly based on the user answers only
+   - Do not add generic content or filler text
+   - Do not add introductory labels like "Purpose:" or "Overview:" at the start
+   - Generate content that directly answers each question
+   - Keep content specific to the company and context mentioned in answers
 
-2. For bullet points:
-   - If bullet has a label before colon like "Label: description"
-     make the label bold using ** **
-   - Format: • **Label:** description text here
-   - If no label just use: • description text here
+2. If no answers are provided:
+   - Generate professional content based on the section title
+   - Use Indian B2B enterprise best practices
+   - Keep content specific and actionable
 
-3. For tables use proper pipe format:
+3. Output format — follow this exact structure:
+
+   For each question or topic, generate a sub-heading followed by bullet points:
+
+   Sub-heading Title
+   • **Bold Label:** Description of the point here with specific details
+   • **Bold Label:** Description of the point here with specific details
+   • **Bold Label:** Description of the point here with specific details
+   • **Bold Label:** Description of the point here with specific details
+
+   Rules for bullet points:
+   - Minimum 4 bullet points per sub-section
+   - Maximum 6 bullet points per sub-section
+   - Every bullet point must have a bold label before the colon
+   - Label must be 1-3 words describing the point
+   - Description after colon must be specific and detailed
+   - No generic filler content like "This section covers..."
+   - No introductory sentences before bullet points
+   - No concluding sentences after bullet points
+
+4. For tables — if user answer has tabular data:
    | Column 1 | Column 2 | Column 3 |
+   |---|---|---|
    | Value 1  | Value 2  | Value 3  |
 
-4. For long paragraphs:
-   - Split into chunks of maximum 4 lines each
-   - Add blank line between each chunk
-   - Do not cut sentences in the middle
+5. Bold and underline rules:
+   - Bold using ** **: key terms, names, deadlines, numbers
+   - Underline using __ __: warnings, mandatory items only
+   - Do not overuse — maximum 2 bold items per bullet
 
-5. Apply bold and underline formatting intelligently:
-   - Bold using ** **: key terms, product names, policy names,
-     role names, deadlines, feature names
-   - Underline using __ __: critical warnings, legal requirements,
-     mandatory items
-   - Do not bold or underline every word — only important items
-   - Maximum 2 to 3 bold or underline items per bullet point
+6. Never include:
+   - The word "Purpose:" as a label at start of any bullet
+   - The word "Overview:" as a label at start of any bullet
+   - Questions in the output
+   - Markdown headers using ##
+   - Any preamble before the content
+   - Any closing remarks after the content
+   - Generic sentences like "This document covers..."
+   - Any content not related to the user answers
 
-6. Do not add questions or headings in the output
-7. Do not add markdown headers using ##
-8. Keep content professional and enterprise grade
+Example of correct output format:
 
-Generate the complete section now:
+Review Process
+- **RFC Submission:** Architect submits formal Request for Comments document to engineering leadership team
+- **Review Period:** Minimum 5 working day review period allowing all stakeholders to provide written feedback
+- **Architecture Review Board:** Dedicated ARB meeting conducted with CTO, Tech Leads and senior engineers
+- **Final Approval:** CTO provides final written approval before any significant architectural changes implemented
+
+Reviewers
+- **CTO:** Reviews overall strategic alignment, scalability approach and technology stack decisions
+- **Tech Leads:** Evaluate technical feasibility, implementation complexity and team capability requirements
+- **Security Engineer:** Reviews all security controls, data protection measures and compliance requirements
+- **DevOps Lead:** Assesses deployment strategy, infrastructure requirements and operational complexity
+
+Generate the section content now following the exact format above:
 """
 )
 
@@ -129,9 +155,29 @@ def generate_section(data: GenerateSectionRequest):
             raise HTTPException(status_code=404, detail="Section not found")
         section_title = result[0]
 
-        answers_text = "\n".join(
-            [f"{a.question}: {a.answer}" for a in data.answers]
-        )
+        # Handle empty answers gracefully
+        if data.answers and len(data.answers) > 0:
+            filled_answers = [
+                a for a in data.answers
+                if a.answer and a.answer.strip()
+            ]
+            if filled_answers:
+                answers_text = "\n".join(
+                    [
+                        f"Question: {a.question}\nAnswer: {a.answer}"
+                        for a in filled_answers
+                    ]
+                )
+            else:
+                answers_text = (
+                    f"No answers provided. "
+                    f"Generate professional content for section: {section_title}"
+                )
+        else:
+            answers_text = (
+                f"No answers provided. "
+                f"Generate professional content for section: {section_title}"
+            )
 
         memory       = get_memory(data.document_id)
         chat_history = ""
