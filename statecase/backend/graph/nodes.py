@@ -18,17 +18,27 @@ logger = logging.getLogger("statecase.nodes")
 def node_clarify(state: dict) -> dict:
     """
     Node 1 — CLARIFY
-    Detect if question needs clarification.
-
-    Sets:
-    → needs_clarification = True/False
-    → clarification_question if needed
-    → refined_intent if clear
-    → current_state = "clarify" or "retrieve"
+    Only ask clarification if question is vague
+    AND no clarification was already asked!
+    If user is answering a clarification → skip to retrieve!
     """
-    message = state["message"]
-    history = state.get("history", "No previous conversation.")
+    message     = state["message"]
+    history     = state.get("history", "No previous conversation.")
+    last_action = state.get("last_action", "")
 
+    # If last action was clarification question
+    # → User is now answering it → skip to retrieve!
+    if last_action == "clarification_question":
+        state["needs_clarification"] = False
+        state["refined_intent"]      = message
+        state["current_state"]       = STATE_RETRIEVE
+        logger.info(
+            f"Clarification answered | "
+            f"session={state['session_id']}"
+        )
+        return state
+
+    # Normal clarification check
     chain    = CLARIFY_PROMPT | llm
     response = chain.invoke({
         "message": message,
